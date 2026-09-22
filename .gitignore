@@ -1,0 +1,45 @@
+# dependencies
+node_modules/
+.npm/
+
+# build output
+dist/
+build/
+*.tsbuildinfo
+
+# environment / secrets  -- NUNCA commitar
+.env
+.env.*
+!.env.example
+
+# banco local (PGlite)
+.data/
+*.sqlite
+*.db
+
+# logs
+logs/
+*.log
+npm-debug.log*
+
+# testes
+coverage/
+.vitest/
+
+# editores / SO
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Claude Code -- config local da maquina/sessao, nao do projeto
+.claude/settings.local.json
+
+# Vercel
+.vercel/
+
+# cache
+.cache/
+.eslintcache
+.vite/

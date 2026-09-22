@@ -1,0 +1,42 @@
+{
+  "name": "petflow",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "PetFlow - SaaS B2B multi-tenant de gestao e relacionamento para pet shops",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @petflow/contracts && npm run build -w @petflow/api && npm run build -w @petflow/web",
+    "dev": "concurrently -n contracts,api,web -c gray,cyan,magenta \"npm run dev -w @petflow/contracts\" \"npm run dev -w @petflow/api\" \"npm run dev -w @petflow/web\"",
+    "dev:api": "npm run dev -w @petflow/api",
+    "dev:web": "npm run dev -w @petflow/web",
+    "typecheck": "npm run build -w @petflow/contracts && npm run typecheck -w @petflow/api && npm run typecheck -w @petflow/web",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test": "npm run build -w @petflow/contracts && npm run test -w @petflow/api && npm run test -w @petflow/web",
+    "db:migrate": "npm run db:migrate -w @petflow/api",
+    "db:seed": "npm run db:seed -w @petflow/api",
+    "db:reset": "npm run db:reset -w @petflow/api"
+  },
+  "comments": {
+    "overrides": "O vitest e o app web aceitam faixas diferentes de vite. Sem esta trava o npm instala duas copias (v5 hoisted + v6 aninhada) e o tsc acusa tipos de Plugin incompativeis entre elas."
+  },
+  "overrides": {
+    "vite": "^6.0.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "concurrently": "^9.1.0",
+    "eslint": "^9.17.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "globals": "^15.14.0",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.19.0"
+  }
+}
