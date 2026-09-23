@@ -13,6 +13,7 @@
   ],
   "scripts": {
     "build": "npm run build -w @petflow/contracts && npm run build -w @petflow/api && npm run build -w @petflow/web",
+    "start": "npm run start -w @petflow/api",
     "dev": "concurrently -n contracts,api,web -c gray,cyan,magenta \"npm run dev -w @petflow/contracts\" \"npm run dev -w @petflow/api\" \"npm run dev -w @petflow/web\"",
     "dev:api": "npm run dev -w @petflow/api",
     "dev:web": "npm run dev -w @petflow/web",
