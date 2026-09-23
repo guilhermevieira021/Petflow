@@ -18,7 +18,7 @@ const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 interface CookieOptions {
   httpOnly: boolean;
   secure: boolean;
-  sameSite: 'lax';
+  sameSite: 'lax' | 'none';
   path: string;
   maxAge: number;
   domain?: string;
@@ -27,11 +27,18 @@ interface CookieOptions {
 function cookieOptions(maxAgeSeconds: number, httpOnly: boolean): CookieOptions {
   return {
     httpOnly,
-    // Em producao o cookie so trafega por HTTPS.
+    // Em producao o cookie so trafega por HTTPS -- tambem exigido pelo
+    // proprio navegador para aceitar SameSite=None abaixo.
     secure: isProduction,
-    // Lax bloqueia o envio em requisicoes cross-site POST, que e o vetor
-    // classico de CSRF, sem quebrar a navegacao normal do usuario.
-    sameSite: 'lax',
+    // Dev: frontend e API na MESMA origem (proxy do Vite), Lax basta e evita
+    // afrouxar a protecao a toa. Producao: frontend (Vercel) e API (host
+    // separado) sao origens DIFERENTES por arquitetura -- um cookie Lax
+    // nunca acompanharia um fetch cross-site, e a sessao pareceria "sumir"
+    // logo apos o login. A defesa contra CSRF nao depende de SameSite: o
+    // double-submit (cookie CSRF legivel + header X-CSRF-Token, checado em
+    // requireAuth) e quem garante isso, e um site de terceiros nao consegue
+    // nem ler nosso cookie CSRF nem passar pelo CORS com um header custom.
+    sameSite: isProduction ? 'none' : 'lax',
     path: '/',
     maxAge: maxAgeSeconds,
     ...(env.COOKIE_DOMAIN ? { domain: env.COOKIE_DOMAIN } : {}),

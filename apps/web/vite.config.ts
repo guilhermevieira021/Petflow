@@ -5,6 +5,9 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // Le .env/.env.example da raiz do monorepo (mesma convencao usada pela
+  // API), em vez de exigir um .env separado dentro de apps/web.
+  envDir: fileURLToPath(new URL('../../', import.meta.url)),
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

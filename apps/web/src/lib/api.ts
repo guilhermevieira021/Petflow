@@ -16,6 +16,14 @@ import { ErrorCode, isApiErrorBody, type ApiErrorBody, type FieldError } from '@
 const CSRF_COOKIE = 'petflow_csrf';
 const CSRF_HEADER = 'X-CSRF-Token';
 
+/**
+ * URL base da API. Vazia em desenvolvimento (fetch relativo `/api/...`,
+ * encaminhado pelo proxy do Vite para a API local na mesma origem -- ver
+ * vite.config.ts). Em producao, `VITE_API_URL` aponta para o host separado
+ * onde a API roda (frontend e API sao origens diferentes por arquitetura).
+ */
+const API_BASE_URL = import.meta.env.VITE_API_URL?.replace(/\/$/, '') ?? '';
+
 export class ApiError extends Error {
   readonly code: string;
   readonly status: number;
@@ -94,7 +102,7 @@ export async function apiRequest<TResponse>(
 
   let response: Response;
   try {
-    response = await fetch(buildUrl(`/api${path}`, options.query), {
+    response = await fetch(buildUrl(`${API_BASE_URL}/api${path}`, options.query), {
       method,
       headers,
       // Necessario para que o cookie httpOnly de sessao acompanhe a chamada.
