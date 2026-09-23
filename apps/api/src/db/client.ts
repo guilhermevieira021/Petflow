@@ -2,6 +2,7 @@ import type { ExtractTablesWithRelations } from 'drizzle-orm';
 import type { PgTransaction } from 'drizzle-orm/pg-core';
 import type { NodePgDatabase, NodePgQueryResultHKT } from 'drizzle-orm/node-postgres';
 import { env } from '../config/env.js';
+import { logger } from '../core/logger.js';
 import { schema, type Schema } from './schema/index.js';
 
 /**
@@ -52,6 +53,15 @@ async function createPostgresDatabase(): Promise<DatabaseHandle> {
     // Uma query presa nao pode travar um worker para sempre.
     statement_timeout: 15_000,
     idle_in_transaction_session_timeout: 15_000,
+  });
+
+  // Sem isso, um cliente OCIOSO do pool que perde a conexao (rede, restart
+  // do lado do banco -- nao precisa de nenhuma query em andamento) emite um
+  // 'error' sem listener, o que o Node trata como excecao nao capturada e
+  // derruba o processo inteiro. Aqui so registramos; o pool descarta o
+  // cliente ocioso sozinho e continua servindo com o restante.
+  pool.on('error', (err) => {
+    logger.error({ err: err.message }, 'Erro em conexao ociosa do pool de Postgres');
   });
 
   const db = drizzle(pool, { schema });
