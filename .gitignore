@@ -35,6 +35,9 @@ Thumbs.db
 
 # Claude Code -- config local da maquina/sessao, nao do projeto
 .claude/settings.local.json
+# MCP com escopo "project" pode gravar headers/tokens de servidor em texto
+# puro aqui (ex.: credenciais da Cakto MCP) -- nunca deve ir para o Git.
+.mcp.json
 
 # Vercel
 .vercel/
