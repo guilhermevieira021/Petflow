@@ -211,10 +211,13 @@ seguranca:
   sessao. Nao expoe nada alem do que um site de precos comum ja mostra.
 - **Webhook nunca aceita POST sem poder validar a origem.** `POST
   /api/webhooks/cakto` nao tem cookie -- o gateway de pagamento externo nao
-  carrega um. Enquanto o mecanismo de autenticacao real da Cakto (assinatura,
-  token, ou outro) nao for confirmado, o endpoint responde `503` para
-  qualquer requisicao, em vez de aceitar e processar um POST nao verificado.
-  Ver [CAKTO.md](CAKTO.md) para o estado atual e o que falta.
+  carrega um. A autenticidade vem de um `secret` no corpo (confirmado com a
+  conta Cakto), comparado em tempo constante (`timingSafeEqual`): `503` sem
+  `CAKTO_WEBHOOK_SECRET` configurada, `403` se o secret nao bater. Mesmo
+  autenticado, o webhook ainda nao aplica nenhuma mudanca a uma assinatura --
+  so grava o evento -- porque faltam os nomes dos demais eventos e a
+  correlacao com um tenant. Ver [CAKTO.md](CAKTO.md) para o estado atual e o
+  que falta.
 - **Checkout nunca finge sucesso.** Sem um `BillingProvider` real configurado,
   `POST /billing/checkout` devolve `checkoutUrl: null` e uma mensagem honesta.
   Nao ha caminho para uma assinatura virar `ACTIVE` sem passar pelo webhook.
@@ -245,9 +248,11 @@ exemplo. Nenhum segredo chega ao frontend: as chamadas passam pelo proprio backe
       real no rate limit e na auditoria)
 - [ ] `MAIL_PROVIDER` implementado antes de prometer recuperacao de senha por email
 - [ ] Rotina periodica chamando `purgeStaleSessions` e `purgeExpiredResetTokens`
-- [ ] `CAKTO_WEBHOOK_SECRET` (ou equivalente) configurado e o mapeamento de
-      eventos reais da Cakto implementado antes de prometer cobranca aos
-      clientes (ver CAKTO.md -- webhook responde 503 ate la, de proposito)
+- [ ] `CAKTO_WEBHOOK_SECRET` real (nao o de teste) configurado, nomes dos
+      demais eventos da Cakto confirmados e mapeamento para status de
+      assinatura implementado antes de prometer cobranca aos clientes (ver
+      CAKTO.md -- webhook ja autentica de verdade, mas so grava o evento,
+      nunca altera uma assinatura, ate isso ser feito)
 
 ## Limites conhecidos
 

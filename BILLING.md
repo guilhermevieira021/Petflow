@@ -149,11 +149,13 @@ de assinatura. Nao ha rota que o frontend chame para "confirmar" um pagamento
 consulta `GET /billing/status`, nunca assume sucesso sozinho (ver
 `BillingPage.tsx`/`UpgradePage.tsx`/`PricingPage.tsx` e `lib/checkout.ts`).
 
-O webhook hoje responde `503` para qualquer requisicao: falta confirmar, junto
-da conta Cakto, o mecanismo de autenticacao, o formato/nomes reais dos eventos,
-e como o payload identifica o tenant. Ver [CAKTO.md](CAKTO.md) para o que falta
-exatamente e onde encontrar cada dado no painel da Cakto -- este arquivo nao
-antecipa nenhum desses detalhes.
+O webhook ja autentica de verdade (`secret` no corpo, confirmado com a conta
+Cakto) e ja grava com seguranca qualquer evento autentico em `billing_events`.
+O que falta e o nomes/formato dos eventos alem de `purchase_approved` e como o
+payload identifica o tenant -- sem isso, o webhook ainda nao chama
+`applyBillingWebhookEvent` (nao aplica nada a uma assinatura). Ver
+[CAKTO.md](CAKTO.md) para o que falta exatamente e onde encontrar cada dado no
+painel da Cakto -- este arquivo nao antecipa nenhum desses detalhes.
 
 A infraestrutura de idempotencia ja existe e esta testada, independente do
 gateway: toda notificacao recebida e gravada em `billing_events`

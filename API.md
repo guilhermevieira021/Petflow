@@ -265,9 +265,12 @@ Com o `CaktoProvider` configurado, devolve
 `{ "checkoutUrl": "https://pay.cakto.com.br/...", "message": "..." }` -- o
 mesmo link para qualquer tenant (ver [CAKTO.md](CAKTO.md)).
 
-`POST /api/webhooks/cakto` — responde `503` para qualquer requisicao ate a
-conta Cakto fornecer o mecanismo real de autenticacao do webhook (assinatura,
-token, ou outro). Ver [CAKTO.md](CAKTO.md) para o estado exato e o que falta.
+`POST /api/webhooks/cakto` — autenticacao real implementada (`secret` no
+corpo). `503` sem `CAKTO_WEBHOOK_SECRET` configurada; `403` com secret
+ausente/incorreto; `400` com secret correto mas payload incompleto; `200`
+com evento autentico (gravado em `billing_events`, ainda sem alterar
+nenhuma assinatura). Ver [CAKTO.md](CAKTO.md) para o que falta para o
+proximo passo (mapear eventos e aplicar a uma assinatura).
 
 ---
 

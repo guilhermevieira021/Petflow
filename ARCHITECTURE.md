@@ -277,20 +277,23 @@ tem duas implementacoes: `NullBillingProvider` (`configured = false`, sem
 checkout) e `CaktoProvider` (`configured = true` quando
 `CAKTO_PRO_CHECKOUT_URL` esta definida, devolvendo esse link estatico -- a
 Cakto nao expoe uma API para gerar sessoes dinamicas). O webhook
-(`POST /api/webhooks/cakto`) existe, registra o evento de forma idempotente em
-`billing_events` quando chamado, e ja tem tudo preparado para aplicar a
-mudanca via `applyBillingWebhookEvent` -- mas responde `503` para qualquer
-requisicao ate que a conta Cakto forneca: o mecanismo real de autenticacao do
-webhook, os nomes/formato reais dos eventos, e uma forma de correlacionar o
+(`POST /api/webhooks/cakto`) autentica de verdade (`secret` no corpo,
+confirmado com a conta Cakto -- `403` se nao bater, `503` sem
+`CAKTO_WEBHOOK_SECRET` configurada) e registra qualquer evento autentico de
+forma idempotente em `billing_events` -- mas ainda NAO chama
+`applyBillingWebhookEvent` para nenhum evento, porque faltam: os nomes/formato
+reais dos eventos alem de `purchase_approved`, e uma forma de correlacionar o
 evento ao tenant comprador (ver [CAKTO.md](CAKTO.md)).
 
-**Por que.** A alternativa -- inventar um esquema de assinatura, adivinhar
-nomes de evento, ou assumir uma forma de identificar o tenant -- criaria uma
-falsa sensacao de "webhook pronto" que quebraria (ou pior, aceitaria eventos
-forjados, ou creditaria o tenant errado) na primeira notificacao real da
-Cakto. `503` ate os dados corretos chegarem e uma resposta honesta: o sistema
-sabe que nao pode validar um webhook cujo formato desconhece, e diz isso em
-vez de simular validacao.
+**Por que.** A alternativa -- adivinhar nomes de evento nao confirmados ou
+assumir uma forma de identificar o tenant -- arriscaria aplicar uma mudanca de
+assinatura ao tenant errado, ou nunca reconhecer um cancelamento/reembolso
+real. Autenticar de verdade (em vez de aceitar qualquer POST) ja foi possivel
+porque a conta Cakto confirmou o mecanismo; gravar o evento tambem, porque
+idempotencia nao depende de conhecer o significado do evento. Aplicar a uma
+assinatura, porem, continua bloqueado ate os dois itens que faltam: isso e uma
+resposta honesta -- o sistema sabe o que ainda nao pode fazer com seguranca, e
+nao finge.
 
 ## Tratamento de erros
 
