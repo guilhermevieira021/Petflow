@@ -22,19 +22,26 @@ export async function listRetentionCandidates(
 
   // Sempre nao-nulo aqui: o EXISTS abaixo ja garante ao menos um atendimento
   // concluido antes de qualquer linha chegar a esta consulta.
+  //
+  // customers.id LITERAL, nunca ${customers.id} interpolado -- ver comentario
+  // completo em customers.service.ts (LAST_VISIT_SQL): interpolar o Column faz
+  // o Drizzle emitir "id" sem qualificar a tabela, que dentro de
+  // `FROM appointments a` resolve para a.id em vez do cliente da linha
+  // externa. Bug real e silencioso -- fazia esta consulta nunca devolver
+  // nenhum candidato a recuperacao, para nenhum tenant.
   const lastVisit = sql<Date>`(
     SELECT max(a.starts_at) FROM appointments a
-    WHERE a.customer_id = ${customers.id} AND a.status = 'COMPLETED'
+    WHERE a.customer_id = customers.id AND a.status = 'COMPLETED'
   )`;
 
   const where = and(
     eq(customers.tenantId, context.tenantId),
     eq(customers.active, true),
     isNull(customers.deletedAt),
-    sql`EXISTS (SELECT 1 FROM appointments a WHERE a.customer_id = ${customers.id} AND a.status = 'COMPLETED')`,
+    sql`EXISTS (SELECT 1 FROM appointments a WHERE a.customer_id = customers.id AND a.status = 'COMPLETED')`,
     sql`NOT EXISTS (
       SELECT 1 FROM appointments a
-      WHERE a.customer_id = ${customers.id}
+      WHERE a.customer_id = customers.id
         AND a.status IN ('SCHEDULED', 'CONFIRMED', 'IN_PROGRESS')
         AND a.starts_at >= now()
     )`,
@@ -51,7 +58,7 @@ export async function listRetentionCandidates(
       lastVisitAt: lastVisit,
       petNames: sql<string[]>`(
         SELECT coalesce(array_agg(p.name ORDER BY p.name), ARRAY[]::text[])
-        FROM pets p WHERE p.customer_id = ${customers.id} AND p.deleted_at IS NULL
+        FROM pets p WHERE p.customer_id = customers.id AND p.deleted_at IS NULL
       )`,
     })
     .from(customers)
@@ -69,7 +76,13 @@ export async function listRetentionCandidates(
       customerWhatsapp: row.customerWhatsapp,
       petNames: row.petNames,
       lastVisitAt: toIsoRequired(row.lastVisitAt),
-      daysSinceLastVisit: Math.floor((now - row.lastVisitAt.getTime()) / (24 * 60 * 60 * 1000)),
+      // row.lastVisitAt e tipado Date, mas o driver pode devolver string para
+      // um MAX() agregado em subquery (mesma ressalva de toIso/toIsoRequired
+      // em core/serialization.ts) -- normaliza antes de .getTime(), nunca
+      // chama direto no valor cru. So exercitado pela primeira vez agora
+      // (ver comentario do bug de correlacao acima: esta consulta nunca
+      // tinha devolvido uma linha de verdade antes).
+      daysSinceLastVisit: Math.floor((now - new Date(row.lastVisitAt).getTime()) / (24 * 60 * 60 * 1000)),
     })),
     pagination: buildPagination(query.page, query.pageSize, toCount(totalRow?.value)),
   };

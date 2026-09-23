@@ -3,7 +3,7 @@ import { and, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 import { toCount, toNumber } from '../../core/serialization.js';
 import type { Transaction } from '../../db/client.js';
 import type { TenantContext } from '../../db/context.js';
-import { appointments, customers, services } from '../../db/schema/index.js';
+import { appointments, customers, payments, services } from '../../db/schema/index.js';
 import { getBillingStatus, hasFeature } from '../billing/billing.service.js';
 import { getTenant } from '../tenants/tenants.service.js';
 
@@ -32,14 +32,16 @@ export async function getReportsOverview(
 
   const counts = { total: 0, completed: 0, cancelled: 0, noShow: 0 };
   let expected = 0;
-  let received = 0;
+  let lost = 0;
   const byService = new Map<string, { count: number; revenue: number }>();
 
   for (const row of periodAppointments) {
     counts.total += 1;
     if (row.status === 'COMPLETED') {
       counts.completed += 1;
-      received += toNumber(row.price);
+      // Receita "gerada" por servico -- performance do servico, independente
+      // de o pagamento ja ter sido cobrado ou nao (isso e revenue.received,
+      // abaixo, que vem de payments -- mesma fonte que o dashboard).
       const entry = byService.get(row.serviceId) ?? { count: 0, revenue: 0 };
       entry.count += 1;
       entry.revenue += toNumber(row.price);
@@ -47,8 +49,28 @@ export async function getReportsOverview(
     }
     if (row.status === 'CANCELLED') counts.cancelled += 1;
     if (row.status === 'NO_SHOW') counts.noShow += 1;
-    if (row.status !== 'CANCELLED' && row.status !== 'NO_SHOW') expected += toNumber(row.price);
+    if (row.status === 'CANCELLED' || row.status === 'NO_SHOW') {
+      lost += toNumber(row.price);
+    } else {
+      expected += toNumber(row.price);
+    }
   }
+
+  // Mesma fonte de verdade do dashboard (dashboard.service.ts): "recebido" e'
+  // sempre payments.amount com status PAID, nunca inferido do status do
+  // agendamento -- um atendimento concluido pode nao ter sido cobrado ainda.
+  const [receivedRow] = await tx
+    .select({ value: sql<string>`coalesce(sum(${payments.amount}), 0)` })
+    .from(payments)
+    .where(
+      and(
+        eq(payments.tenantId, context.tenantId),
+        eq(payments.status, 'PAID'),
+        gte(payments.paidAt, from),
+        lte(payments.paidAt, to),
+      ),
+    );
+  const received = toNumber(receivedRow?.value);
 
   const [newCustomersRow] = await tx
     .select({ value: sql<string>`count(*)` })
@@ -76,16 +98,18 @@ export async function getReportsOverview(
       and(
         eq(customers.tenantId, context.tenantId),
         eq(customers.active, true),
-        sql`EXISTS (SELECT 1 FROM appointments a WHERE a.customer_id = ${customers.id} AND a.status = 'COMPLETED')`,
+        // customers.id LITERAL, nunca ${customers.id} interpolado -- ver
+        // comentario completo em customers.service.ts (LAST_VISIT_SQL).
+        sql`EXISTS (SELECT 1 FROM appointments a WHERE a.customer_id = customers.id AND a.status = 'COMPLETED')`,
         sql`NOT EXISTS (
           SELECT 1 FROM appointments a
-          WHERE a.customer_id = ${customers.id}
+          WHERE a.customer_id = customers.id
             AND a.status IN ('SCHEDULED', 'CONFIRMED', 'IN_PROGRESS')
             AND a.starts_at >= now()
         )`,
         sql`(
           SELECT max(a.starts_at) FROM appointments a
-          WHERE a.customer_id = ${customers.id} AND a.status = 'COMPLETED'
+          WHERE a.customer_id = customers.id AND a.status = 'COMPLETED'
         ) < now() - (${inactiveThresholdDays} || ' days')::interval`,
       ),
     );
@@ -118,6 +142,7 @@ export async function getReportsOverview(
     revenue: {
       expected: Math.round(expected * 100) / 100,
       received: Math.round(received * 100) / 100,
+      lost: Math.round(lost * 100) / 100,
     },
     customers: {
       new: toCount(newCustomersRow?.value),

@@ -36,6 +36,7 @@ export const AuditAction = {
   APPOINTMENT_CANCELLED: 'appointment.cancelled',
 
   PAYMENT_RECORDED: 'payment.recorded',
+  PAYMENT_STATUS_CHANGED: 'payment.status_changed',
   MESSAGE_SENT: 'message.sent',
 
   SUBSCRIPTION_STARTED: 'subscription.started',

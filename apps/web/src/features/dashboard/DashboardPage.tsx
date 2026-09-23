@@ -8,6 +8,7 @@ import {
   MessageCircle,
   MinusCircle,
   Percent,
+  TrendingDown,
   TrendingUp,
   UserRoundPlus,
   UserRoundX,
@@ -87,10 +88,22 @@ function StatTile({
    divergirem por acidente.
 --------------------------------------------------------------------------- */
 
-function RevenueTiles({ expected, received }: { expected: number; received: number }) {
+function RevenueTiles({
+  expected,
+  received,
+  lost,
+}: {
+  expected: number;
+  received: number;
+  /** Soma de agendamentos cancelados/nao compareceu -- nunca vai virar receita (dashboard.service.ts). */
+  lost: number;
+}) {
   // Subtracao direta, sem piso em zero: se um dia receber mais do que o
   // previsto (ex.: pagamento adiantado), isso aparece como numero negativo
-  // em vez de escondido -- e o dado real, nao um "cliente perdido".
+  // em vez de escondido -- e o dado real, nao um "cliente perdido". Note que
+  // "previsto" ja exclui cancelado/no-show (ver dashboard.service.ts), entao
+  // este valor e' "a receber" de agendamentos ainda validos -- nao inclui o
+  // que foi perdido por cancelamento/falta, que e' o tile "Perdido" abaixo.
   const notRealized = expected - received;
   const percentage = realizedPercentage(expected, received);
 
@@ -113,6 +126,13 @@ function RevenueTiles({ expected, received }: { expected: number; received: numb
         detail="Previsto menos recebido"
         icon={<MinusCircle className="size-4" />}
         tone={notRealized > 0 ? 'warning' : 'neutral'}
+      />
+      <StatTile
+        label="Perdido"
+        value={formatMoney(lost)}
+        detail="Cancelado ou nao compareceu"
+        icon={<TrendingDown className="size-4" />}
+        tone={lost > 0 ? 'warning' : 'neutral'}
       />
       <StatTile
         label="% realizado"
@@ -145,15 +165,15 @@ function DashboardSkeleton() {
       <span className="sr-only">Carregando indicadores do dia e da semana</span>
 
       <Skeleton className="mb-2 h-3.5 w-12" />
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        {Array.from({ length: 5 }, (_, index) => (
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+        {Array.from({ length: 6 }, (_, index) => (
           <StatTileSkeleton key={index} />
         ))}
       </div>
 
       <Skeleton className="mt-5 mb-2 h-3.5 w-20" />
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {Array.from({ length: 4 }, (_, index) => (
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        {Array.from({ length: 5 }, (_, index) => (
           <StatTileSkeleton key={index} />
         ))}
       </div>
@@ -301,7 +321,7 @@ export function DashboardPage() {
               so a janela de dados muda. Separados em duas secoes com titulo
               proprio para nunca serem confundidos um com o outro. */}
           <h2 className="mb-2 text-[0.8125rem] font-semibold text-[var(--color-text-muted)]">Hoje</h2>
-          <section aria-label="Indicadores de hoje" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <section aria-label="Indicadores de hoje" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
             <StatTile
               label="Atendimentos hoje"
               value={String(query.data.today.total)}
@@ -311,16 +331,18 @@ export function DashboardPage() {
             <RevenueTiles
               expected={query.data.today.expectedRevenue}
               received={query.data.today.receivedRevenue}
+              lost={query.data.today.lostRevenue}
             />
           </section>
 
           <h2 className="mt-5 mb-2 text-[0.8125rem] font-semibold text-[var(--color-text-muted)]">
             Esta semana
           </h2>
-          <section aria-label="Indicadores da semana" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <section aria-label="Indicadores da semana" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
             <RevenueTiles
               expected={query.data.week.expectedRevenue}
               received={query.data.week.receivedRevenue}
+              lost={query.data.week.lostRevenue}
             />
           </section>
 

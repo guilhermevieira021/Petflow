@@ -23,10 +23,15 @@ import { assertActiveAccess, assertWithinLimit } from '../billing/billing.servic
 import { recordAudit } from '../audit/audit.service.js';
 import { assertCustomerExists } from '../customers/customers.service.js';
 
-/** Ver comentario equivalente em customers.service.ts: driver devolve Date, nao string. */
+/**
+ * Ver comentario equivalente em customers.service.ts: driver devolve Date,
+ * nao string. Correlacao com `pets.id` LITERAL (texto SQL), nunca
+ * `${pets.id}` interpolado -- ver comentario completo do porque em
+ * customers.service.ts (LAST_VISIT_SQL).
+ */
 const LAST_VISIT_SQL = sql<Date | null>`(
   SELECT max(a.starts_at) FROM appointments a
-  WHERE a.pet_id = ${pets.id} AND a.status = 'COMPLETED'
+  WHERE a.pet_id = pets.id AND a.status = 'COMPLETED'
 )`;
 
 function toDto(row: typeof pets.$inferSelect): PetDto {

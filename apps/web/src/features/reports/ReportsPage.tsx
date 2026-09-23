@@ -104,9 +104,10 @@ export function ReportsPage() {
 
           <Card>
             <CardHeader title="Faturamento" />
-            <CardBody className="grid grid-cols-2 gap-3">
+            <CardBody className="grid grid-cols-3 gap-3">
               <StatTile label="Previsto" value={formatMoney(query.data.revenue.expected)} />
               <StatTile label="Recebido" value={formatMoney(query.data.revenue.received)} />
+              <StatTile label="Perdido" value={formatMoney(query.data.revenue.lost)} />
             </CardBody>
           </Card>
 

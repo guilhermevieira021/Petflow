@@ -130,6 +130,7 @@ function buildTodayMetrics(
     noShow: 0,
     expectedRevenue: 0,
     receivedRevenue: 0,
+    lostRevenue: 0,
   };
 
   for (const row of windowAppointments) {
@@ -160,6 +161,9 @@ function buildTodayMetrics(
     // Cancelado e no-show nao entram na previsao: nao ha receita a esperar.
     if (row.status !== 'CANCELLED' && row.status !== 'NO_SHOW') {
       metrics.expectedRevenue += toNumber(row.price);
+    } else {
+      // Perdido = estava previsto (fazia parte da agenda) e nao aconteceu.
+      metrics.lostRevenue += toNumber(row.price);
     }
   }
 
@@ -171,6 +175,7 @@ function buildTodayMetrics(
 
   metrics.expectedRevenue = round2(metrics.expectedRevenue);
   metrics.receivedRevenue = round2(metrics.receivedRevenue);
+  metrics.lostRevenue = round2(metrics.lostRevenue);
   return metrics;
 }
 
@@ -189,12 +194,16 @@ function buildWeekMetrics(
 ): DashboardWeekMetrics {
   let expectedRevenue = 0;
   let receivedRevenue = 0;
+  let lostRevenue = 0;
 
   for (const row of windowAppointments) {
-    if (row.status === 'CANCELLED' || row.status === 'NO_SHOW') continue;
     const day = toLocalDate(row.startsAt, timeZone);
     if (day < weekStart || day > weekEnd) continue;
-    expectedRevenue += toNumber(row.price);
+    if (row.status === 'CANCELLED' || row.status === 'NO_SHOW') {
+      lostRevenue += toNumber(row.price);
+    } else {
+      expectedRevenue += toNumber(row.price);
+    }
   }
 
   for (const payment of windowPayments) {
@@ -209,6 +218,7 @@ function buildWeekMetrics(
     weekEnd,
     expectedRevenue: round2(expectedRevenue),
     receivedRevenue: round2(receivedRevenue),
+    lostRevenue: round2(lostRevenue),
   };
 }
 
@@ -330,20 +340,25 @@ async function buildCustomerMetrics(
         eq(customers.tenantId, context.tenantId),
         eq(customers.active, true),
         isNull(customers.deletedAt),
+        // customers.id LITERAL (texto SQL), nunca ${customers.id} interpolado
+        // -- ver comentario completo em customers.service.ts (LAST_VISIT_SQL):
+        // interpolar o Column faz o Drizzle emitir "id" sem qualificar, que
+        // dentro de `FROM appointments a` resolve para a.id (bug real,
+        // silencioso -- EXISTS(a.customer_id = a.id) nunca bate).
         sql`EXISTS (
           SELECT 1 FROM appointments a
-          WHERE a.customer_id = ${customers.id}
+          WHERE a.customer_id = customers.id
             AND a.status = 'COMPLETED'
         )`,
         sql`NOT EXISTS (
           SELECT 1 FROM appointments a
-          WHERE a.customer_id = ${customers.id}
+          WHERE a.customer_id = customers.id
             AND a.status IN ('SCHEDULED', 'CONFIRMED', 'IN_PROGRESS')
             AND a.starts_at >= ${localDayStart(referenceDate, timeZone)}
         )`,
         sql`NOT EXISTS (
           SELECT 1 FROM appointments a
-          WHERE a.customer_id = ${customers.id}
+          WHERE a.customer_id = customers.id
             AND a.status = 'COMPLETED'
             AND a.starts_at >= ${localDayStart(cutoff, timeZone)}
         )`,
@@ -370,11 +385,11 @@ async function countPendingReturns(tx: Transaction, context: TenantContext): Pro
         isNull(customers.deletedAt),
         sql`EXISTS (
           SELECT 1 FROM appointments a
-          WHERE a.customer_id = ${customers.id} AND a.status = 'COMPLETED'
+          WHERE a.customer_id = customers.id AND a.status = 'COMPLETED'
         )`,
         sql`NOT EXISTS (
           SELECT 1 FROM appointments a
-          WHERE a.customer_id = ${customers.id}
+          WHERE a.customer_id = customers.id
             AND a.status IN ('SCHEDULED', 'CONFIRMED', 'IN_PROGRESS')
             AND a.starts_at >= now()
         )`,

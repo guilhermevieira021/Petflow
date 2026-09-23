@@ -16,6 +16,7 @@ import { caktoWebhookRoutes } from './routes/cakto-webhook.routes.js';
 import { auditRoutes, dashboardRoutes } from './routes/dashboard.routes.js';
 import { customersRoutes } from './routes/customers.routes.js';
 import { messagesRoutes } from './routes/messages.routes.js';
+import { paymentsRoutes } from './routes/payments.routes.js';
 import { petsRoutes } from './routes/pets.routes.js';
 import { plansRoutes } from './routes/plans.routes.js';
 import { reportsRoutes } from './routes/reports.routes.js';
@@ -81,6 +82,7 @@ export async function buildServer(): Promise<FastifyInstance> {
   await app.register(petsRoutes, { prefix: '/api/pets' });
   await app.register(servicesRoutes, { prefix: '/api/services' });
   await app.register(appointmentsRoutes, { prefix: '/api/appointments' });
+  await app.register(paymentsRoutes, { prefix: '/api/payments' });
   await app.register(retentionRoutes, { prefix: '/api/retention' });
   await app.register(messagesRoutes, { prefix: '/api/messages' });
   await app.register(reportsRoutes, { prefix: '/api/reports' });

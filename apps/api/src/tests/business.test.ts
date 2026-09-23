@@ -155,6 +155,37 @@ describe('Pets', () => {
     });
     expect(response.statusCode).toBe(422);
   });
+
+  it('lastVisitAt reflete o atendimento concluido de verdade', async () => {
+    // Regressao: LAST_VISIT_SQL interpolava `${pets.id}` dentro de uma
+    // subquery correlacionada com sua propria `FROM appointments a` -- o
+    // Drizzle emitia "id" sem qualificar, resolvendo para a.id em vez do pet
+    // da linha externa. lastVisitAt sempre voltava null, mesmo com
+    // atendimento concluido de verdade.
+    const { customerId, petId, serviceId } = await seedBusinessEntities(shopA);
+    const startsAt = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
+
+    const appt = await authed(server, shopA.owner, {
+      method: 'POST',
+      url: '/api/appointments',
+      payload: { customerId, petId, serviceId, startsAt, allowPast: true },
+    });
+    const appointmentId = appt.json<{ id: string }>().id;
+    await authed(server, shopA.owner, {
+      method: 'PATCH',
+      url: `/api/appointments/${appointmentId}/status`,
+      payload: { status: 'IN_PROGRESS' },
+    });
+    await authed(server, shopA.owner, {
+      method: 'PATCH',
+      url: `/api/appointments/${appointmentId}/status`,
+      payload: { status: 'COMPLETED' },
+    });
+
+    const pet = await authed(server, shopA.owner, { method: 'GET', url: `/api/pets/${petId}` });
+    expect(pet.statusCode).toBe(200);
+    expect(pet.json<{ lastVisitAt: string | null }>().lastVisitAt).toBe(startsAt);
+  });
 });
 
 describe('Servicos', () => {
@@ -349,6 +380,52 @@ describe('Recuperacao de clientes e mensagens', () => {
     const list = await authed(server, shopA.owner, { method: 'GET', url: '/api/messages' });
     expect(list.statusCode).toBe(200);
   });
+
+  it('candidato real (atendido ha muito tempo, sem retorno) aparece na lista de recuperacao', async () => {
+    // Regressao: listRetentionCandidates interpolava `${customers.id}` dentro
+    // de subqueries correlacionadas com sua PROPRIA `FROM appointments a` --
+    // o Drizzle emitia "id" sem qualificar, que resolvia para a.id dentro do
+    // escopo da subquery em vez do cliente da linha externa. A lista
+    // SEMPRE voltava vazia, para qualquer tenant, desde sempre.
+    const { customerId, petId, serviceId } = await seedBusinessEntities(shopA);
+
+    const past = await authed(server, shopA.owner, {
+      method: 'POST',
+      url: '/api/appointments',
+      payload: {
+        customerId,
+        petId,
+        serviceId,
+        startsAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
+        allowPast: true,
+      },
+    });
+    expect(past.statusCode).toBe(201);
+    const pastId = past.json<{ id: string }>().id;
+    await authed(server, shopA.owner, {
+      method: 'PATCH',
+      url: `/api/appointments/${pastId}/status`,
+      payload: { status: 'IN_PROGRESS' },
+    });
+    await authed(server, shopA.owner, {
+      method: 'PATCH',
+      url: `/api/appointments/${pastId}/status`,
+      payload: { status: 'COMPLETED' },
+    });
+
+    const retention = await authed(server, shopA.owner, { method: 'GET', url: '/api/retention?days=45' });
+    expect(retention.statusCode).toBe(200);
+    const body = retention.json<{
+      data: { customerId: string; petNames: string[]; daysSinceLastVisit: number }[];
+    }>();
+    const candidate = body.data.find((row) => row.customerId === customerId);
+    expect(candidate).toBeDefined();
+    expect(candidate?.petNames.length).toBeGreaterThan(0);
+    // Regressao #2: daysSinceLastVisit chamava .getTime() direto no valor cru
+    // do driver, que pode vir como string (nunca antes exercitado, porque a
+    // consulta nunca tinha devolvido uma linha de verdade -- ver bug acima).
+    expect(candidate?.daysSinceLastVisit).toBeGreaterThanOrEqual(90);
+  });
 });
 
 describe('Relatorios', () => {
@@ -367,5 +444,83 @@ describe('Relatorios', () => {
     const body = response.json<{ advanced: boolean; topServices: unknown }>();
     expect(body.advanced).toBe(true);
     expect(Array.isArray(body.topServices)).toBe(true);
+  });
+
+  it('revenue.received vem de payments PAID (nao de agendamento concluido), e revenue.lost soma cancelado/no-show', async () => {
+    const { customerId, petId, serviceId } = await seedBusinessEntities(shopA);
+    const from = '2020-01-01';
+    const to = '2030-01-01';
+
+    // Concluido, mas SEM pagamento registrado -- nao pode contar como recebido.
+    const completed = await authed(server, shopA.owner, {
+      method: 'POST',
+      url: '/api/appointments',
+      payload: {
+        customerId,
+        petId,
+        serviceId,
+        startsAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        allowPast: true,
+      },
+    });
+    expect(completed.statusCode).toBe(201);
+    const completedId = completed.json<{ id: string }>().id;
+    await authed(server, shopA.owner, {
+      method: 'PATCH',
+      url: `/api/appointments/${completedId}/status`,
+      payload: { status: 'IN_PROGRESS' },
+    });
+    await authed(server, shopA.owner, {
+      method: 'PATCH',
+      url: `/api/appointments/${completedId}/status`,
+      payload: { status: 'COMPLETED' },
+    });
+
+    const before = await authed(server, shopA.owner, {
+      method: 'GET',
+      url: `/api/reports/overview?from=${from}&to=${to}`,
+    });
+    const beforeReceived = before.json<{ revenue: { received: number } }>().revenue.received;
+
+    // Agora registra o pagamento de verdade -- so DAI o recebido deve subir.
+    await authed(server, shopA.owner, {
+      method: 'POST',
+      url: '/api/payments',
+      payload: { customerId, appointmentId: completedId, method: 'PIX' },
+    });
+
+    // Cancelado -- deve entrar em "lost", nunca em "received" ou "expected".
+    // +240h (10 dias): bem longe de qualquer outro horario fixo usado pelos
+    // testes de "Agenda" acima (a maioria usa +24h/+48h no MESMO shopA, sem
+    // profissional -- reusar esse horario aqui daria 409 de conflito).
+    const cancelled = await authed(server, shopA.owner, {
+      method: 'POST',
+      url: '/api/appointments',
+      payload: {
+        customerId,
+        petId,
+        serviceId,
+        startsAt: new Date(Date.now() + 240 * 60 * 60 * 1000).toISOString(),
+      },
+    });
+    expect(cancelled.statusCode).toBe(201);
+    const cancelledId = cancelled.json<{ id: string }>().id;
+    const cancelResponse = await authed(server, shopA.owner, {
+      method: 'PATCH',
+      url: `/api/appointments/${cancelledId}/status`,
+      payload: { status: 'CANCELLED', reason: 'Teste de relatorio.' },
+    });
+    expect(cancelResponse.statusCode).toBe(200);
+
+    const after = await authed(server, shopA.owner, {
+      method: 'GET',
+      url: `/api/reports/overview?from=${from}&to=${to}`,
+    });
+    const afterBody = after.json<{ revenue: { expected: number; received: number; lost: number } }>();
+
+    // O agendamento concluido (preco 90, ver seedBusinessEntities) so aparece
+    // em "received" DEPOIS do pagamento ser registrado -- nunca so por estar COMPLETED.
+    expect(afterBody.revenue.received).toBe(beforeReceived + 90);
+    expect(afterBody.revenue.lost).toBeGreaterThanOrEqual(90);
   });
 });

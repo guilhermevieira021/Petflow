@@ -9,6 +9,7 @@ export * from './customer.js';
 export * from './pet.js';
 export * from './service.js';
 export * from './appointment.js';
+export * from './payment.js';
 export * from './dashboard.js';
 export * from './audit.js';
 export * from './retention.js';

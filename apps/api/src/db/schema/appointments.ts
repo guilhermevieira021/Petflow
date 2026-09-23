@@ -1,4 +1,4 @@
-import type { AppointmentStatus } from '@petflow/contracts';
+import type { AppointmentStatus, PaymentMethod, PaymentStatus } from '@petflow/contracts';
 import { numeric, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { customers, pets } from './customers.js';
 import { services } from './services.js';
@@ -39,24 +39,6 @@ export const appointments = pgTable('appointments', {
 
 export type AppointmentRow = typeof appointments.$inferSelect;
 export type NewAppointmentRow = typeof appointments.$inferInsert;
-
-export const PaymentMethod = {
-  CASH: 'CASH',
-  DEBIT_CARD: 'DEBIT_CARD',
-  CREDIT_CARD: 'CREDIT_CARD',
-  PIX: 'PIX',
-  TRANSFER: 'TRANSFER',
-  OTHER: 'OTHER',
-} as const;
-export type PaymentMethod = (typeof PaymentMethod)[keyof typeof PaymentMethod];
-
-export const PaymentStatus = {
-  PENDING: 'PENDING',
-  PAID: 'PAID',
-  REFUNDED: 'REFUNDED',
-  CANCELLED: 'CANCELLED',
-} as const;
-export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus];
 
 export const payments = pgTable('payments', {
   id: uuid('id').primaryKey().defaultRandom(),

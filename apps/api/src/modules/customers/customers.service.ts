@@ -30,29 +30,39 @@ import { recordAudit } from '../audit/audit.service.js';
  * timestamp), nao como string. A conversao para ISO 8601 acontece so na
  * fronteira do DTO, via `toIso`/`toIsoRequired` -- igual ao resto do codigo.
  */
+// IMPORTANTE: a correlacao usa o literal `customers.id` (texto SQL puro),
+// NUNCA `${customers.id}` interpolado. Interpolar o Column faz o Drizzle
+// emitir so `"id"` sem qualificar a tabela (ele nao enxerga a subquery em
+// texto puro, entao nao sabe que precisa desambiguar) -- dentro da
+// subquery isso resolve para a PRIMARY KEY DA PROPRIA subquery (ex.: a.id,
+// p.id), nunca para o cliente da linha externa, e a condicao vira
+// "a.customer_id = a.id", que nunca bate com nada de verdade. Bug real,
+// silencioso, que fazia todo cliente aparecer com 0 pets/agendamentos/gasto
+// e nenhuma ultima visita -- so descoberto ao popular payments de verdade
+// (ver payments.test.ts). Igual acontece com PETS_COUNT_SQL/etc. abaixo.
 const LAST_VISIT_SQL = sql<Date | null>`(
   SELECT max(a.starts_at) FROM appointments a
-  WHERE a.customer_id = ${customers.id} AND a.status = 'COMPLETED'
+  WHERE a.customer_id = customers.id AND a.status = 'COMPLETED'
 )`;
 
 /** Proximo atendimento que ainda ocupa a agenda. */
 const NEXT_APPOINTMENT_SQL = sql<Date | null>`(
   SELECT min(a.starts_at) FROM appointments a
-  WHERE a.customer_id = ${customers.id}
+  WHERE a.customer_id = customers.id
     AND a.status IN ('SCHEDULED', 'CONFIRMED', 'IN_PROGRESS')
     AND a.starts_at >= now()
 )`;
 
 const PETS_COUNT_SQL = sql<string>`(
-  SELECT count(*) FROM pets p WHERE p.customer_id = ${customers.id} AND p.deleted_at IS NULL
+  SELECT count(*) FROM pets p WHERE p.customer_id = customers.id AND p.deleted_at IS NULL
 )`;
 
 const APPOINTMENTS_COUNT_SQL = sql<string>`(
-  SELECT count(*) FROM appointments a WHERE a.customer_id = ${customers.id} AND a.status = 'COMPLETED'
+  SELECT count(*) FROM appointments a WHERE a.customer_id = customers.id AND a.status = 'COMPLETED'
 )`;
 
 const TOTAL_SPENT_SQL = sql<string>`(
-  SELECT coalesce(sum(p.amount), 0) FROM payments p WHERE p.customer_id = ${customers.id} AND p.status = 'PAID'
+  SELECT coalesce(sum(p.amount), 0) FROM payments p WHERE p.customer_id = customers.id AND p.status = 'PAID'
 )`;
 
 function toDto(row: typeof customers.$inferSelect): CustomerDto {

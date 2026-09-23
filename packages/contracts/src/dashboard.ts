@@ -20,6 +20,8 @@ export interface DashboardTodayMetrics {
   expectedRevenue: number;
   /** Soma dos pagamentos efetivamente recebidos hoje. */
   receivedRevenue: number;
+  /** Soma dos agendamentos cancelados ou com falta hoje -- receita que estava prevista e nao vai mais acontecer. */
+  lostRevenue: number;
 }
 
 export interface DashboardUpcomingAppointment {
@@ -49,6 +51,8 @@ export interface DashboardWeekMetrics {
   expectedRevenue: number;
   /** Soma dos pagamentos recebidos na semana inteira (mesma regra de today.receivedRevenue). */
   receivedRevenue: number;
+  /** Soma dos agendamentos cancelados ou com falta na semana inteira (mesma regra de today.lostRevenue). */
+  lostRevenue: number;
 }
 
 export interface DashboardOverview {

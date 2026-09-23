@@ -159,22 +159,32 @@ describe('Dashboard -- indicadores de hoje e da semana', () => {
     expect(response.statusCode).toBe(200);
 
     const body = response.json<{
-      today: { expectedRevenue: number; receivedRevenue: number };
-      week: { weekStart: string; weekEnd: string; expectedRevenue: number; receivedRevenue: number };
+      today: { expectedRevenue: number; receivedRevenue: number; lostRevenue: number };
+      week: {
+        weekStart: string;
+        weekEnd: string;
+        expectedRevenue: number;
+        receivedRevenue: number;
+        lostRevenue: number;
+      };
     }>();
 
     expect(body.week.weekStart).toBe(WEEK_START);
     expect(body.week.weekEnd).toBe(WEEK_END);
 
-    // Hoje: so o agendamento 1 (100) e o pagamento de hoje (40).
+    // Hoje: so o agendamento 1 (100) e o pagamento de hoje (40). O cancelado
+    // e quinta-feira (24), nao hoje (quarta, 23) -- nao entra no perdido de hoje.
     expect(body.today.expectedRevenue).toBe(100);
     expect(body.today.receivedRevenue).toBe(40);
+    expect(body.today.lostRevenue).toBe(0);
 
     // Semana: agendamentos 1+2 (100+50=150, o 3 fica de fora por estar na
-    // semana seguinte, o cancelado nunca entra) e pagamentos de hoje+segunda
-    // (40+25=65, o de semana seguinte fica de fora).
+    // semana seguinte, o cancelado nunca entra no previsto) e pagamentos de
+    // hoje+segunda (40+25=65, o de semana seguinte fica de fora). O
+    // cancelado (999, quinta da mesma semana) e' exatamente o perdido da semana.
     expect(body.week.expectedRevenue).toBe(150);
     expect(body.week.receivedRevenue).toBe(65);
+    expect(body.week.lostRevenue).toBe(999);
   });
 
   it('nunca confunde "nao realizado" com cliente perdido -- e so previsto menos recebido, calculavel a partir dos mesmos dois numeros ja expostos', async () => {
@@ -220,5 +230,89 @@ describe('Dashboard -- indicadores de hoje e da semana', () => {
     expect(body.today.receivedRevenue).toBe(0);
     const naoRealizado = body.today.expectedRevenue - body.today.receivedRevenue;
     expect(naoRealizado).toBe(120);
+  });
+
+  it('pendingReturns e customers.inactive detectam cliente ja atendido sem retorno marcado', async () => {
+    // Regressao: buildCustomerMetrics/countPendingReturns interpolavam
+    // `${customers.id}` dentro de subqueries correlacionadas com sua PROPRIA
+    // `FROM appointments a` -- o Drizzle emitia "id" sem qualificar tabela,
+    // que dentro do escopo da subquery resolvia para a.id (nao para o
+    // cliente da linha externa). EXISTS(a.customer_id = a.id) nunca bate,
+    // entao os dois indicadores SEMPRE devolviam 0, para qualquer tenant,
+    // desde sempre. So descoberto ao popular payments de verdade neste ciclo.
+    const shop = await createTenantWithOwner(server, { tenantName: 'Pet Shop Retornos Pendentes' });
+    const service = await authed(server, shop.owner, {
+      method: 'POST',
+      url: '/api/services',
+      payload: { name: 'Banho Retorno', durationMinutes: 60, price: 90 },
+    });
+    const serviceId = service.json<{ id: string }>().id;
+
+    async function seedCompletedCustomer(name: string, daysAgo: number, withFutureAppointment: boolean) {
+      const customer = await authed(server, shop.owner, {
+        method: 'POST',
+        url: '/api/customers',
+        payload: { name, phone: '11988887777' },
+      });
+      const customerId = customer.json<{ id: string }>().id;
+      const pet = await authed(server, shop.owner, {
+        method: 'POST',
+        url: '/api/pets',
+        payload: { customerId, name: `${name} Pet`, species: 'DOG' },
+      });
+      const petId = pet.json<{ id: string }>().id;
+
+      const past = await authed(server, shop.owner, {
+        method: 'POST',
+        url: '/api/appointments',
+        payload: {
+          customerId,
+          petId,
+          serviceId,
+          startsAt: new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString(),
+          allowPast: true,
+        },
+      });
+      const pastId = past.json<{ id: string }>().id;
+      await authed(server, shop.owner, {
+        method: 'PATCH',
+        url: `/api/appointments/${pastId}/status`,
+        payload: { status: 'IN_PROGRESS' },
+      });
+      await authed(server, shop.owner, {
+        method: 'PATCH',
+        url: `/api/appointments/${pastId}/status`,
+        payload: { status: 'COMPLETED' },
+      });
+
+      if (withFutureAppointment) {
+        await authed(server, shop.owner, {
+          method: 'POST',
+          url: '/api/appointments',
+          payload: {
+            customerId,
+            petId,
+            serviceId,
+            startsAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+          },
+        });
+      }
+
+      return customerId;
+    }
+
+    // Ha 60 dias, sem retorno marcado -- pendingReturns E inactive (padrao 45 dias).
+    await seedCompletedCustomer('Cliente Sumido', 60, false);
+    // Ha 5 dias, sem retorno marcado -- pendingReturns, mas NAO inactive (dentro do prazo).
+    await seedCompletedCustomer('Cliente Recente Sem Retorno', 5, false);
+    // Ha 60 dias, MAS com retorno futuro marcado -- nenhum dos dois.
+    await seedCompletedCustomer('Cliente Com Retorno Marcado', 60, true);
+
+    const response = await authed(server, shop.owner, { method: 'GET', url: '/api/dashboard/overview' });
+    expect(response.statusCode).toBe(200);
+    const body = response.json<{ pendingReturns: number; customers: { inactive: number } }>();
+
+    expect(body.pendingReturns).toBe(2);
+    expect(body.customers.inactive).toBe(1);
   });
 });

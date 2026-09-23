@@ -33,6 +33,8 @@ export interface ReportsOverviewDto {
   revenue: {
     expected: number;
     received: number;
+    /** Soma dos agendamentos cancelados ou com falta no periodo -- mesma regra do dashboard. */
+    lost: number;
   };
   customers: {
     new: number;
