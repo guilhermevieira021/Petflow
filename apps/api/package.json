@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "db:migrate": "tsx --env-file-if-exists=../../.env src/db/cli/migrate.ts",
+    "db:migrate:prod": "node --env-file-if-exists=../../.env dist/db/cli/migrate.js",
     "db:seed": "tsx --env-file-if-exists=../../.env src/db/cli/seed.ts",
     "db:reset": "tsx --env-file-if-exists=../../.env src/db/cli/reset.ts"
   },

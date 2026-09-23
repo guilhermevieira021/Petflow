@@ -5,7 +5,7 @@
     "buildCommand": "npm run build -w @petflow/api"
   },
   "deploy": {
-    "startCommand": "npm run start -w @petflow/api",
+    "startCommand": "npm run db:migrate:prod -w @petflow/api && npm run start -w @petflow/api",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 100,
     "restartPolicyType": "ON_FAILURE",
