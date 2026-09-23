@@ -6,9 +6,9 @@
   "description": "Interface web do PetFlow",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "npm run build -w @petflow/contracts && tsc -b && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -b --force",
+    "typecheck": "npm run build -w @petflow/contracts && tsc -b --force",
     "test": "vitest run"
   },
   "dependencies": {
