@@ -1,7 +1,7 @@
 import type { LoginInput, Permission, SessionPayload } from '@petflow/contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useEffect, useMemo, type ReactNode } from 'react';
-import { ApiError, api } from '@/lib/api';
+import { ApiError, api, setCsrfToken } from '@/lib/api';
 
 export const SESSION_QUERY_KEY = ['session'] as const;
 
@@ -32,6 +32,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   });
 
   const session = query.data ?? null;
+
+  /**
+   * Mantem o token CSRF em memoria (lib/api.ts) sincronizado com a sessao
+   * atual -- inclusive limpando quando a sessao cai (logout, 401), para que
+   * uma aba que troque de usuario nunca reuse um token da sessao anterior.
+   */
+  useEffect(() => {
+    setCsrfToken(session?.csrfToken ?? null);
+  }, [session?.csrfToken]);
 
   /**
    * White-label: a cor do tenant vira o token --color-brand, e todos os tons

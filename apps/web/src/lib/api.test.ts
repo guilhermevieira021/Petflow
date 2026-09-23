@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ApiError, apiRequest } from './api';
+import { ApiError, apiRequest, setCsrfToken } from './api';
 
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -69,5 +69,55 @@ describe('apiRequest', () => {
     const error = await apiRequest('/customers').catch((caught: unknown) => caught);
     expect(error).toBeInstanceOf(ApiError);
     expect((error as ApiError).message).not.toContain('<html>');
+  });
+});
+
+describe('apiRequest -- token CSRF', () => {
+  /**
+   * Regressao do bug de producao: com API e frontend em origens diferentes
+   * (Railway/Vercel), `document.cookie` no frontend NUNCA enxerga um cookie
+   * definido pela API -- entao o token precisa vir de `setCsrfToken`
+   * (chamado a partir da resposta de /auth/me, nao de um cookie lido aqui).
+   */
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn());
+    setCsrfToken(null);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    setCsrfToken(null);
+  });
+
+  it('anexa X-CSRF-Token numa mutacao depois de setCsrfToken', async () => {
+    setCsrfToken('token-de-teste');
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(200, {}));
+
+    await apiRequest('/customers', { method: 'POST', body: { name: 'Rex' } });
+
+    const [, init] = vi.mocked(fetch).mock.calls[0]!;
+    const headers = init!.headers as Record<string, string>;
+    expect(headers['X-CSRF-Token']).toBe('token-de-teste');
+  });
+
+  it('nao anexa o header quando nenhum token foi definido ainda', async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(200, {}));
+
+    await apiRequest('/customers', { method: 'POST', body: { name: 'Rex' } });
+
+    const [, init] = vi.mocked(fetch).mock.calls[0]!;
+    const headers = init!.headers as Record<string, string>;
+    expect(headers['X-CSRF-Token']).toBeUndefined();
+  });
+
+  it('nunca anexa o header em requisicoes GET, mesmo com token definido', async () => {
+    setCsrfToken('token-de-teste');
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(200, {}));
+
+    await apiRequest('/customers');
+
+    const [, init] = vi.mocked(fetch).mock.calls[0]!;
+    const headers = (init?.headers ?? {}) as Record<string, string>;
+    expect(headers['X-CSRF-Token']).toBeUndefined();
   });
 });

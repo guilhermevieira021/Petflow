@@ -102,6 +102,33 @@ describe('Login', () => {
     expect(serialized).toContain('petflow_csrf');
   });
 
+  it('devolve o csrfToken tambem no corpo da resposta -- API e frontend sao origens diferentes em producao, entao o frontend nao pode depender de ler o cookie via document.cookie', async () => {
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: { email: shop.owner.email, password: 'senhaSegura1' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json<{ csrfToken: string }>();
+    expect(body.csrfToken).toBeTruthy();
+
+    // O valor do corpo precisa ser o MESMO que o header espera -- uma
+    // mutacao autenticada usando so esse valor (sem tocar em cookie nenhum)
+    // tem que funcionar de ponta a ponta.
+    const cookies = response.headers['set-cookie'];
+    const serialized = Array.isArray(cookies) ? cookies.join('; ') : String(cookies);
+    const sessionCookie = /petflow_session=([^;]+)/.exec(serialized)?.[1];
+
+    const mutating = await server.inject({
+      method: 'PATCH',
+      url: '/api/tenants/current',
+      headers: { cookie: `petflow_session=${sessionCookie}`, 'x-csrf-token': body.csrfToken },
+      payload: { name: 'Nome Atualizado Via Token Do Corpo' },
+    });
+    expect(mutating.statusCode).toBe(200);
+  });
+
   it('recusa senha incorreta sem revelar se o email existe', async () => {
     const response = await server.inject({
       method: 'POST',

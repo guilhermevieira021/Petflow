@@ -13,7 +13,6 @@ import { ErrorCode, isApiErrorBody, type ApiErrorBody, type FieldError } from '@
  * em um lugar so e impede que uma tela invente a sua propria mensagem.
  */
 
-const CSRF_COOKIE = 'petflow_csrf';
 const CSRF_HEADER = 'X-CSRF-Token';
 
 /**
@@ -59,11 +58,21 @@ export class ApiError extends Error {
   }
 }
 
-function readCsrfToken(): string | null {
-  const match = document.cookie
-    .split('; ')
-    .find((entry) => entry.startsWith(`${CSRF_COOKIE}=`));
-  return match ? decodeURIComponent(match.slice(CSRF_COOKIE.length + 1)) : null;
+/**
+ * Token CSRF em memoria, atualizado por `setCsrfToken` sempre que a sessao
+ * (login/registro/GET /auth/me) entrega um novo -- ver session.tsx.
+ *
+ * NAO le mais de um cookie: `petflow_csrf` e definido pela API, e API e
+ * frontend sao origens diferentes (Railway/Vercel). `document.cookie`
+ * executado na origem do frontend nunca enxerga um cookie definido por uma
+ * origem diferente -- isso independe de httpOnly/SameSite, e a causa raiz de
+ * "Sessao invalida" ter passado a aparecer em toda mutacao autenticada assim
+ * que a API saiu para um dominio proprio.
+ */
+let csrfToken: string | null = null;
+
+export function setCsrfToken(token: string | null): void {
+  csrfToken = token;
 }
 
 interface RequestOptions {
@@ -95,9 +104,8 @@ export async function apiRequest<TResponse>(
     headers['Content-Type'] = 'application/json';
   }
 
-  if (method !== 'GET') {
-    const csrf = readCsrfToken();
-    if (csrf) headers[CSRF_HEADER] = csrf;
+  if (method !== 'GET' && csrfToken) {
+    headers[CSRF_HEADER] = csrfToken;
   }
 
   let response: Response;

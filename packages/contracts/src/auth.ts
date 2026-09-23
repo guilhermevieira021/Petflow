@@ -77,6 +77,16 @@ export interface TenantBranding {
 export interface SessionPayload {
   user: AuthenticatedUser;
   tenant: TenantBranding;
+  /**
+   * Token do double-submit CSRF, para o frontend reenviar no header
+   * X-CSRF-Token em mutacoes. Entregue aqui (nao lido de um cookie por JS)
+   * porque a API e o frontend sao origens diferentes: um cookie definido
+   * pela API nunca aparece em `document.cookie` executado na origem do
+   * frontend, mesmo sem httpOnly -- isso e sobre QUEM DEFINIU o cookie, nao
+   * sobre a flag. Continua sendo double-submit de verdade: um site de
+   * terceiros nao consegue ler esta resposta (bloqueado por CORS).
+   */
+  csrfToken: string;
   permissions: Permission[];
   onboarding: {
     completed: boolean;

@@ -55,7 +55,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       expiresAt: result.session.expiresAt,
     });
 
-    return reply.status(201).send({ user: result.user });
+    return reply.status(201).send({ user: result.user, csrfToken: result.session.csrfToken });
   });
 
   app.post('/login', strictLimit, async (request, reply) => {
@@ -68,7 +68,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       expiresAt: result.session.expiresAt,
     });
 
-    return reply.send({ user: result.user });
+    return reply.send({ user: result.user, csrfToken: result.session.csrfToken });
   });
 
   app.post('/logout', { preHandler: requireAuth }, async (request, reply) => {
@@ -94,6 +94,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       const result: SessionPayload = {
         user: auth.user,
         tenant: toBranding(tenant),
+        csrfToken: auth.csrfSecret,
         permissions: [...permissionsFor(auth.user.role)],
         onboarding,
         billing,
