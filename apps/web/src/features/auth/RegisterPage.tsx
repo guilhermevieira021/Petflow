@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import type { RegisterInput } from '@petflow/contracts';
+import type { RegisterInput, SessionPayload } from '@petflow/contracts';
 import { Button } from '@/components/ui/Button';
 import { TextField } from '@/components/ui/Field';
 import { ApiError, api } from '@/lib/api';
@@ -15,9 +15,15 @@ export function RegisterPage() {
 
   const registerMutation = useMutation({
     mutationFn: (input: RegisterInput) => api.post<{ user: unknown }>('/auth/register', input),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: SESSION_QUERY_KEY });
-    },
+    // fetchQuery, NAO invalidateQueries -- mesmo motivo do login (ver
+    // session.tsx/useLogin): precisa REJEITAR se /auth/me falhar logo apos o
+    // cadastro, senao o app navegaria para o onboarding sem sessao
+    // confirmada.
+    onSuccess: () =>
+      queryClient.fetchQuery({
+        queryKey: SESSION_QUERY_KEY,
+        queryFn: () => api.get<SessionPayload>('/auth/me'),
+      }),
   });
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {

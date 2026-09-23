@@ -116,9 +116,19 @@ export function useLogin() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: LoginInput) => api.post<{ user: unknown }>('/auth/login', input),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: SESSION_QUERY_KEY });
-    },
+    onSuccess: () =>
+      // fetchQuery, NAO invalidateQueries: invalidateQueries so promete que
+      // uma nova tentativa de GET /auth/me aconteceu, nao que ela deu certo
+      // -- a promessa resolve mesmo que a resposta seja 401. fetchQuery
+      // REJEITA quando o fetch falha, entao mutateAsync() no LoginPage so
+      // resolve com sucesso quando a sessao foi REALMENTE confirmada; senao
+      // cai no catch, mostra o erro, e nunca navega para uma rota protegida
+      // sem sessao valida (o que so apareceria como "voltou pro login
+      // sozinho", sem nenhuma explicacao).
+      queryClient.fetchQuery({
+        queryKey: SESSION_QUERY_KEY,
+        queryFn: () => api.get<SessionPayload>('/auth/me'),
+      }),
   });
 }
 
