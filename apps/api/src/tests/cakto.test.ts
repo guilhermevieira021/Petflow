@@ -2,10 +2,11 @@ import type { FastifyInstance } from 'fastify';
 import { and, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { CaktoProvider } from '../integrations/billing/billing.provider.js';
-import { billingEvents } from '../db/schema/index.js';
+import { billingEvents, subscriptions } from '../db/schema/index.js';
 import { withSystem, withTenant } from '../db/context.js';
-import { recordBillingEvent } from '../modules/billing/billing.service.js';
-import { createTenantWithOwner, errorCode, setupTestApp, teardownTestApp } from './helpers.js';
+import { computeProPeriodEnd } from '../modules/billing/cakto-events.js';
+import { applyBillingWebhookEvent, recordBillingEvent } from '../modules/billing/billing.service.js';
+import { authed, createTenantWithOwner, errorCode, setupTestApp, teardownTestApp } from './helpers.js';
 
 /**
  * Integracao Cakto.
@@ -13,16 +14,21 @@ import { createTenantWithOwner, errorCode, setupTestApp, teardownTestApp } from 
  * O que esta coberto aqui e exatamente o que ja e real hoje: o
  * `CaktoProvider` (checkout com o link estatico configurado), o webhook
  * validando o `secret` do corpo (confirmado com a conta Cakto -- painel
- * "Adicionar Webhook") e gravando o evento de forma idempotente, e a tabela
+ * "Adicionar Webhook"), gravando o evento de forma idempotente, calculando
+ * corretamente o periodo de 30 dias para `purchase_approved`, e a tabela
  * `billing_events` (idempotencia e isolamento entre tenants).
  *
  * `CAKTO_WEBHOOK_SECRET` so existe em `vitest.config.ts` para exercitar esse
  * caminho em teste -- NAO e o segredo real da Cakto.
  *
- * O que NAO esta coberto (de proposito, ate a conta Cakto fornecer os dados
- * que faltam): mapear o evento para um status de assinatura e aplicar via
- * `applyBillingWebhookEvent`, porque isso exige saber o nome de TODOS os
- * eventos reais e como correlacionar o evento a um tenant -- ver CAKTO.md.
+ * O que NAO esta coberto pelo caminho HTTP real (de proposito, ate a conta
+ * Cakto confirmar a correlacao de tenant -- ver CAKTO.md): o webhook em si
+ * nunca chama `applyBillingWebhookEvent` porque `resolveTenantIdFromCaktoRefId`
+ * sempre devolve null. O describe "Ativacao da assinatura" abaixo prova que a
+ * logica de ativacao (status/plano/periodo de 30 dias) esta correta chamando
+ * `applyBillingWebhookEvent` diretamente -- o MESMO caminho que o webhook usa
+ * internamente -- com um tenant real conhecido pelo teste, simulando o que
+ * acontece assim que a correlacao for confirmada.
  */
 
 let server: FastifyInstance;
@@ -130,7 +136,9 @@ describe('Webhook -- POST /api/webhooks/cakto', () => {
     const response = await server.inject({
       method: 'POST',
       url: '/api/webhooks/cakto',
-      payload: caktoPayload({ data: { id: 'evt_webhook_http_aceito' } }),
+      payload: caktoPayload({
+        data: { id: 'evt_webhook_http_aceito', refId: '9vbgfmg', paidAt: '2026-06-26T12:00:00.000000+00:00' },
+      }),
     });
     expect(response.statusCode).toBe(200);
 
@@ -151,11 +159,187 @@ describe('Webhook -- POST /api/webhooks/cakto', () => {
     const second = await server.inject({ method: 'POST', url: '/api/webhooks/cakto', payload });
     expect(first.statusCode).toBe(200);
     expect(second.statusCode).toBe(200);
+    expect(first.json<{ applied: boolean }>().applied).toBe(false);
+    expect(second.json<{ applied: boolean }>().applied).toBe(false);
 
     const rows = await withSystem((tx) =>
       tx.select().from(billingEvents).where(eq(billingEvents.eventId, 'evt_webhook_http_reentrega')),
     );
     expect(rows).toHaveLength(1);
+  });
+
+  it('evento de tipo ainda nao mapeado (ex.: cancelamento/reembolso, nomes nao confirmados) e gravado mas nunca aplicado', async () => {
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/webhooks/cakto',
+      payload: caktoPayload({
+        event: 'evento_nao_reconhecido_ainda',
+        data: { id: 'evt_tipo_desconhecido' },
+      }),
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json<{ applied: boolean }>().applied).toBe(false);
+
+    const rows = await withSystem((tx) =>
+      tx.select().from(billingEvents).where(eq(billingEvents.eventId, 'evt_tipo_desconhecido')),
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.status).toBe('RECEIVED');
+  });
+
+  it('purchase_approved sem data.paidAt valido e marcado como FAILED, mas ainda responde 200 (nao gera retentativa infinita)', async () => {
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/webhooks/cakto',
+      payload: caktoPayload({ data: { id: 'evt_sem_paidat' } }),
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json<{ applied: boolean }>().applied).toBe(false);
+
+    const rows = await withSystem((tx) =>
+      tx.select().from(billingEvents).where(eq(billingEvents.eventId, 'evt_sem_paidat')),
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.status).toBe('FAILED');
+    expect(rows[0]!.errorMessage).toContain('paidAt');
+  });
+
+  it('purchase_approved autentico e bem formado nunca altera nenhuma subscription enquanto a correlacao de tenant nao for confirmada', async () => {
+    const shop = await createTenantWithOwner(server, { tenantName: 'Pet Shop Cakto Webhook Sem Correlacao' });
+    const before = await withSystem((tx) =>
+      tx.select().from(subscriptions).where(eq(subscriptions.tenantId, shop.tenantId)),
+    );
+    expect(before[0]!.status).toBe('TRIALING');
+
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/webhooks/cakto',
+      payload: caktoPayload({
+        data: {
+          id: 'evt_purchase_sem_correlacao',
+          refId: '9vbgfmg',
+          paidAt: '2026-06-26T12:00:00.000000+00:00',
+        },
+      }),
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json<{ applied: boolean }>().applied).toBe(false);
+
+    // O tenant criado neste teste continua exatamente como estava --
+    // nenhuma assinatura no banco foi tocada por este evento.
+    const after = await withSystem((tx) =>
+      tx.select().from(subscriptions).where(eq(subscriptions.tenantId, shop.tenantId)),
+    );
+    expect(after[0]!.status).toBe('TRIALING');
+    expect(after[0]!.provider).toBeNull();
+  });
+});
+
+describe('Ativacao da assinatura (via applyBillingWebhookEvent -- o mesmo caminho que o webhook usaria com a correlacao resolvida)', () => {
+  it('compra aprovada leva o tenant de TRIALING para ACTIVE/PRO, com periodo de 30 dias a partir de paidAt', async () => {
+    const shop = await createTenantWithOwner(server, { tenantName: 'Pet Shop Cakto Ativacao' });
+    const paidAt = new Date('2026-06-26T12:00:00.000Z');
+    const currentPeriodEnd = computeProPeriodEnd(paidAt);
+
+    await withSystem((tx) =>
+      applyBillingWebhookEvent(tx, {
+        tenantId: shop.tenantId,
+        status: 'ACTIVE',
+        planCode: 'PRO',
+        currentPeriodEnd: currentPeriodEnd.toISOString(),
+        provider: 'cakto',
+        providerSubscriptionId: 'sub_cakto_exemplo',
+      }),
+    );
+
+    const [row] = await withSystem((tx) =>
+      tx.select().from(subscriptions).where(eq(subscriptions.tenantId, shop.tenantId)),
+    );
+    expect(row!.status).toBe('ACTIVE');
+    expect(row!.provider).toBe('cakto');
+    expect(row!.providerSubscriptionId).toBe('sub_cakto_exemplo');
+    expect(row!.currentPeriodEnd!.toISOString()).toBe('2026-07-26T12:00:00.000Z');
+
+    const status = await authed(server, shop.owner, { method: 'GET', url: '/api/billing/status' });
+    const body = status.json<{
+      plan: { code: string; limits: Record<string, number | null> };
+      subscription: { status: string };
+      trial: { active: boolean };
+      access: { blocked: boolean };
+    }>();
+    // Sai do trial de verdade: plano PRO, limites liberados (null = ilimitado),
+    // trial.active false -- o sistema nao trata mais este tenant como gratuito.
+    expect(body.plan.code).toBe('PRO');
+    expect(body.plan.limits.customers).toBeNull();
+    expect(body.subscription.status).toBe('ACTIVE');
+    expect(body.trial.active).toBe(false);
+    expect(body.access.blocked).toBe(false);
+  });
+
+  it('idempotencia real: o mesmo evento (mesmo eventId) processado duas vezes nao soma dias ao periodo', async () => {
+    const shop = await createTenantWithOwner(server, { tenantName: 'Pet Shop Cakto Sem Duplicar Periodo' });
+    const paidAt = new Date('2026-03-01T00:00:00.000Z');
+    const currentPeriodEnd = computeProPeriodEnd(paidAt);
+
+    const apply = () =>
+      withSystem(async (tx) => {
+        const row = await recordBillingEvent(tx, {
+          provider: 'cakto',
+          eventId: 'evt_idempotencia_periodo',
+          eventType: 'purchase_approved',
+          tenantId: shop.tenantId,
+          payload: {},
+        });
+        if (!row) return; // reentrega: nao reaplica
+        await applyBillingWebhookEvent(tx, {
+          tenantId: shop.tenantId,
+          status: 'ACTIVE',
+          planCode: 'PRO',
+          currentPeriodEnd: currentPeriodEnd.toISOString(),
+          provider: 'cakto',
+        });
+      });
+
+    await apply();
+    await apply(); // reentrega do MESMO evento
+
+    const [row] = await withSystem((tx) =>
+      tx.select().from(subscriptions).where(eq(subscriptions.tenantId, shop.tenantId)),
+    );
+    // Continua sendo paidAt + 30 dias -- nao paidAt + 60.
+    expect(row!.currentPeriodEnd!.toISOString()).toBe(currentPeriodEnd.toISOString());
+  });
+
+  it('renovacao: uma SEGUNDA compra aprovada (eventId diferente, paidAt mais recente) estende o periodo a partir da nova data', async () => {
+    const shop = await createTenantWithOwner(server, { tenantName: 'Pet Shop Cakto Renovacao' });
+
+    const primeiroPagamento = new Date('2026-01-01T00:00:00.000Z');
+    await withSystem((tx) =>
+      applyBillingWebhookEvent(tx, {
+        tenantId: shop.tenantId,
+        status: 'ACTIVE',
+        planCode: 'PRO',
+        currentPeriodEnd: computeProPeriodEnd(primeiroPagamento).toISOString(),
+        provider: 'cakto',
+      }),
+    );
+
+    const segundoPagamento = new Date('2026-01-30T00:00:00.000Z');
+    await withSystem((tx) =>
+      applyBillingWebhookEvent(tx, {
+        tenantId: shop.tenantId,
+        status: 'ACTIVE',
+        planCode: 'PRO',
+        currentPeriodEnd: computeProPeriodEnd(segundoPagamento).toISOString(),
+        provider: 'cakto',
+      }),
+    );
+
+    const [row] = await withSystem((tx) =>
+      tx.select().from(subscriptions).where(eq(subscriptions.tenantId, shop.tenantId)),
+    );
+    expect(row!.status).toBe('ACTIVE');
+    expect(row!.currentPeriodEnd!.toISOString()).toBe(computeProPeriodEnd(segundoPagamento).toISOString());
   });
 });
 

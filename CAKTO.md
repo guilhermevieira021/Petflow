@@ -52,13 +52,22 @@ header. Isso ja esta implementado com comparacao em tempo constante
 | `CAKTO_WEBHOOK_SECRET` nao configurada nesta instalacao | `503` |
 | `secret` do corpo ausente ou nao bate com o configurado | `403` |
 | `secret` correto, mas falta `event` ou `data.id` no corpo | `400` |
-| `secret` correto e payload com `event`/`data.id` | `200` -- evento gravado em `billing_events` de forma idempotente, com `tenantId: null` |
+| `secret` correto e payload com `event`/`data.id` | `200` -- evento gravado em `billing_events` de forma idempotente |
+
+O que acontece depois de gravar o evento depende do `event`:
+
+| `event` | Comportamento |
+|---|---|
+| `purchase_approved`, `data.paidAt` valido | Calcula o novo periodo (`data.paidAt` + 30 dias -- ver "Ativacao do PRO e os 30 dias" abaixo) e tentaria chamar `applyBillingWebhookEvent()` -- MAS so o faz se `resolveTenantIdFromCaktoRefId()` identificar um tenant, o que hoje NUNCA acontece (item 3 abaixo). Evento fica `RECEIVED`, pendente. |
+| `purchase_approved`, sem `data.paidAt` valido | Evento marcado `FAILED` em `billing_events.status`, com o motivo em `errorMessage`. Ainda responde `200` (para a Cakto nao reentregar para sempre algo que nunca vai ficar valido). |
+| Qualquer outro `event` (nomes ainda nao confirmados) | Gravado, mas nunca aplicado -- o sistema so age sobre eventos cujo significado foi confirmado. |
 
 Ou seja: o endpoint ja recusa qualquer requisicao que nao consiga autenticar,
-e ja registra com seguranca qualquer evento autentico que receber -- mas
-ainda NAO chama `applyBillingWebhookEvent()` (ainda nao muda o status de
-nenhuma assinatura), porque faltam os dois itens abaixo. Um evento aceito
-fica disponivel em `billing_events` para reconciliacao manual ate la.
+ja registra com seguranca qualquer evento autentico que receber, e ja sabe
+CALCULAR corretamente o novo periodo de uma compra aprovada -- mas ainda NAO
+consegue aplicar isso a NENHUMA assinatura real, porque falta o item 3
+abaixo (correlacao de tenant). Um evento aceito mas nao aplicado fica
+disponivel em `billing_events` (status `RECEIVED`) para reconciliacao manual.
 
 ### O que falta -- AGUARDANDO CONFIGURACAO DO PROJETO
 
@@ -156,6 +165,44 @@ Pontos relevantes para quando o mapeamento de eventos for implementado:
 - `data.id` e usado hoje como `eventId` (chave de idempotencia em
   `billing_events`); `event` e usado como `eventType`.
 
+### Ativacao do PRO e os 30 dias
+
+Quando um `purchase_approved` puder ser aplicado (assim que a correlacao de
+tenant existir), a ativacao segue exatamente esta regra, implementada em
+`apps/api/src/modules/billing/cakto-events.ts` e testada com datas fixas em
+`cakto-events.test.ts` (sem esperar 30 dias de verdade):
+
+```
+startedAt  = data.paidAt                      (NUNCA data de cadastro, criacao
+                                                de conta ou abertura do checkout)
+expiresAt  = startedAt + 30 dias               (computeProPeriodEnd)
+```
+
+`expiresAt` e gravado na coluna JA EXISTENTE `subscriptions.current_period_end`
+-- a mesma que ja alimenta "Renova em..." na tela de billing e que
+`applyBillingWebhookEvent` ja sabia atualizar desde a Fase 2. Nao foi criada
+nenhuma coluna nova (`started_at`/`expires_at`); reaproveitar
+`current_period_end` evita duplicar o mesmo dado sob dois nomes.
+
+**Uma renovacao** (uma segunda compra aprovada, com `eventId` diferente e
+`paidAt` mais recente) recalcula `expiresAt` a partir do NOVO `paidAt` --
+testado em `cakto.test.ts` ("renovacao: uma SEGUNDA compra aprovada..."),
+provando que o periodo estende a partir da data certa, sem somar dias ao
+valor anterior.
+
+**Sobre a "expiracao" apos os 30 dias:** hoje, uma assinatura `ACTIVE` NUNCA
+se autobloqueia so por `current_period_end` ter passado --
+`computeAccess()` (`billing.service.ts`) devolve `blocked: false` para
+`ACTIVE` incondicionalmente. Isso e proposital e preexistente a esta tarefa:
+como e a Cakto quem gerencia a cobranca recorrente, o sistema espera um
+evento explicito dela (cobranca falhou, cancelamento) para mudar o acesso --
+nunca decide sozinho que "30 dias se passaram, corta o acesso", porque isso
+poderia derrubar um cliente cuja renovacao a Cakto ja processou mas cujo
+webhook ainda nao chegou. `current_period_end` e informativo ("Renova em..."),
+nao um portao de acesso para `ACTIVE`. Ver "O que falta" acima -- os nomes de
+evento para atraso/cancelamento sao exatamente o que falta para o `PAST_DUE`/
+`CANCELLED` acontecerem de verdade.
+
 ### O que ja funciona, independente desses dados
 
 - **Autenticacao real.** `secret` do corpo comparado em tempo constante com
@@ -171,11 +218,26 @@ Pontos relevantes para quando o mapeamento de eventos for implementado:
   `billing_events`, no mesmo padrao de todas as tabelas de negocio. Testado
   em `cakto.test.ts` com o mesmo padrao usado em `tenant-isolation.test.ts`
   (consulta deliberadamente sem filtro de tenant, dependendo so da policy).
-- **Reuso do servico de billing existente.** Quando os itens 2 e 3 acima
-  forem fornecidos, o webhook passa a mapear `eventType` para um status e
-  chamar `applyBillingWebhookEvent()` -- a MESMA funcao que ja existe em
-  `apps/api/src/modules/billing/billing.service.ts` desde a Fase 2. Nao havera
-  um sistema de assinatura paralelo.
+- **Calculo do periodo de 30 dias.** `computeProPeriodEnd()` em
+  `cakto-events.ts`, puro e testado com datas fixas (virada de mes/ano,
+  limite exato do prazo).
+- **Ativacao completa, ja testada ponta a ponta contra o banco real.**
+  `cakto.test.ts` ("Ativacao da assinatura") chama `applyBillingWebhookEvent`
+  com um tenant real criado no teste e confirma: status TRIALING -> ACTIVE,
+  plano TRIAL -> PRO, `current_period_end` = `paidAt` + 30 dias,
+  `GET /billing/status` reflete PRO com limites liberados (`null` =
+  ilimitado) e `trial.active = false`. Isso E o caminho que o webhook usa
+  internamente -- so falta o passo anterior (identificar o tenant) para o
+  webhook chamar isso sozinho.
+- **Idempotencia tambem no nivel de assinatura, nao so na tabela de
+  eventos.** Reentregar o MESMO evento (mesmo `eventId`) nao soma 30 dias de
+  novo -- testado explicitamente em "idempotencia real" em `cakto.test.ts`.
+- **Reuso do servico de billing existente.** O webhook nao duplica logica de
+  entitlements/limites: `applyBillingWebhookEvent()` e `getBillingStatus()`
+  sao as MESMAS funcoes que ja existem em
+  `apps/api/src/modules/billing/billing.service.ts` desde a Fase 2. So falta
+  o item 3 acima (correlacao de tenant) para o webhook poder chama-las
+  sozinho, sem intervencao manual.
 
 ## Trial
 
@@ -235,13 +297,18 @@ sessao).
 npm test -w @petflow/api -- cakto
 ```
 
-Cobre: `CaktoProvider` (link configurado devolvido sem chamada de rede; mesmo
-link independente do tenant); o webhook respondendo `503` sem
-`CAKTO_WEBHOOK_SECRET` configurada, `403` com secret ausente/incorreto, `400`
-com secret correto mas payload incompleto, e `200` com evento autentico
-gravado; idempotencia de `billing_events` (evento duplicado gravado uma unica
-vez, inclusive reentregue via HTTP real) e isolamento entre tenants na mesma
-tabela.
+Roda `cakto.test.ts` (integracao HTTP + banco real) e `cakto-events.test.ts`
+(unidades puras). Cobre: `CaktoProvider` (link configurado devolvido sem
+chamada de rede; mesmo link independente do tenant); o webhook respondendo
+`503` sem `CAKTO_WEBHOOK_SECRET` configurada, `403` com secret
+ausente/incorreto, `400` com secret correto mas payload incompleto, e `200`
+com evento autentico gravado (aplicado ou nao, conforme a tabela acima);
+eventos de tipo nao mapeado e `purchase_approved` sem `paidAt` valido;
+idempotencia de `billing_events` E de assinatura (evento duplicado nao soma
+dias); isolamento entre tenants; calculo dos 30 dias com datas fixas
+(inclusive limite exato do prazo); ativacao completa TRIALING -> ACTIVE/PRO
+contra o banco real; e renovacao (segunda compra estende o periodo a partir
+da nova data).
 
 Mocks sao usados **somente nesses testes automatizados**, nunca no produto
 real -- nao ha nenhum caminho no codigo de producao que simule um pagamento
@@ -257,8 +324,10 @@ aprovado.
 | Mecanismo de autenticacao do webhook | Implementado (`secret` no corpo, comparacao em tempo constante) -- falta so confirmar o VALOR real em producao |
 | Tabela de idempotencia (`billing_events`) | Pronta e testada, inclusive via HTTP real |
 | Evento `purchase_approved` | Payload completo confirmado e documentado acima |
+| Calculo dos 30 dias (`paidAt` + 30 dias -> `current_period_end`) | Implementado e testado (`cakto-events.ts`, `cakto-events.test.ts`) |
+| Ativacao ACTIVE/PRO via `applyBillingWebhookEvent` | Implementada e testada ponta a ponta contra o banco -- falta so o webhook conseguir chamar isso sozinho |
+| Idempotencia (tabela de eventos E assinatura, nao soma dias em reentrega) | Implementada e testada |
 | Nomes dos demais eventos (past due, cancelamento, reembolso, chargeback) | **AGUARDANDO CONFIGURACAO DO PROJETO** |
-| Correlacao evento -> tenant | **AGUARDANDO CONFIGURACAO DO PROJETO** |
-| Mapeamento evento -> status de assinatura | Nao implementado -- depende das duas linhas acima |
+| Correlacao evento -> tenant (`resolveTenantIdFromCaktoRefId` sempre devolve null hoje) | **AGUARDANDO CONFIGURACAO DO PROJETO** -- bloqueador critico |
 | `CAKTO_WEBHOOK_SECRET` em producao | Vazia em `.env.example`, aguardando confirmacao do valor real salvo no painel Cakto |
-| URL publica do webhook (para cadastrar na Cakto) | **AGUARDANDO** -- projeto ainda sem dominio de producao definido |
+| URL publica do webhook (para cadastrar na Cakto) | **AGUARDANDO** -- ver secao de teste em producao |
