@@ -7,7 +7,7 @@ import {
   CaktoEventType,
   computeProPeriodEnd,
   parseCaktoPurchaseApprovedEvent,
-  resolveTenantIdFromCaktoRefId,
+  resolveTenantIdFromCaktoEvent,
 } from '../../modules/billing/cakto-events.js';
 import {
   applyBillingWebhookEvent,
@@ -20,8 +20,8 @@ import {
  * Webhook da Cakto -- POST /api/webhooks/cakto.
  *
  * ================================================================
- * ESTADO ATUAL: autenticacao e idempotencia reais; ativacao de assinatura
- * so acontece quando o tenant puder ser identificado (ver CAKTO.md)
+ * ESTADO ATUAL: autenticacao, idempotencia E ativacao de assinatura reais
+ * para `purchase_approved` -- ver ressalva sobre correlacao abaixo.
  * ================================================================
  *
  * A conta Cakto confirmou (painel "Adicionar Webhook") que a autenticidade
@@ -30,17 +30,16 @@ import {
  * implementado abaixo, com comparacao em tempo constante.
  *
  * O UNICO evento confirmado ate agora e `purchase_approved` (payload
- * completo documentado em CAKTO.md). Para esse evento, este endpoint ja
- * calcula corretamente o novo periodo (30 dias a partir de `data.paidAt` --
- * nunca da data de cadastro, criacao de conta ou abertura do checkout) e
- * aplicaria a assinatura via `applyBillingWebhookEvent` -- MAS
- * `resolveTenantIdFromCaktoRefId()` sempre devolve `null` hoje, porque ainda
- * nao ha confirmacao de como correlacionar o evento a um tenant (o link de
- * checkout e o MESMO para qualquer pet shop). Enquanto isso nao for
- * confirmado, TODO evento -- mesmo autentico e bem formado -- fica
- * registrado em `billing_events` com `tenantId: null`, sem tocar em nenhuma
- * assinatura. Isso e intencional: aplicar a um tenant adivinhado arriscaria
- * ativar o PRO do pet shop errado.
+ * completo documentado em CAKTO.md). Para esse evento, este endpoint calcula
+ * o novo periodo (30 dias a partir de `data.paidAt` -- nunca da data de
+ * cadastro, criacao de conta ou abertura do checkout), resolve o tenant via
+ * `resolveTenantIdFromCaktoEvent` (casa `data.customer.email` contra o OWNER
+ * ativo daquele email -- ver cakto-events.ts para o porque dessa estrategia)
+ * e aplica via `applyBillingWebhookEvent` -- MAS SOMENTE quando essa
+ * correlacao for inequivoca. Se a pessoa usou um email diferente no checkout
+ * da Cakto do que usa para logar no PetFlow (ou qualquer outra ambiguidade),
+ * o evento fica registrado em `billing_events` com `tenantId: null`, sem
+ * tocar em nenhuma assinatura -- nunca adivinha.
  *
  * Qualquer `event` diferente de `purchase_approved` (atraso, cancelamento,
  * reembolso -- nomes ainda nao confirmados) e registrado mas nunca aplicado.
@@ -104,11 +103,11 @@ export async function caktoWebhookRoutes(app: FastifyInstance): Promise<void> {
         return { applied: false as const, reason: 'invalid_payload' };
       }
 
-      const tenantId = resolveTenantIdFromCaktoRefId(parsed.refId);
+      const tenantId = await resolveTenantIdFromCaktoEvent(tx, parsed);
       if (!tenantId) {
         request.log.warn(
           { eventId, eventType },
-          'Webhook Cakto: tenant nao identificado (correlacao ainda nao confirmada) -- evento pendente para reconciliacao manual',
+          'Webhook Cakto: tenant nao identificado (email do checkout nao bate com nenhum OWNER ativo) -- evento pendente para reconciliacao manual',
         );
         return { applied: false as const, reason: 'tenant_unresolved' };
       }

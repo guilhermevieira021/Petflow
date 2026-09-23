@@ -58,7 +58,8 @@ O que acontece depois de gravar o evento depende do `event`:
 
 | `event` | Comportamento |
 |---|---|
-| `purchase_approved`, `data.paidAt` valido | Calcula o novo periodo (`data.paidAt` + 30 dias -- ver "Ativacao do PRO e os 30 dias" abaixo) e tentaria chamar `applyBillingWebhookEvent()` -- MAS so o faz se `resolveTenantIdFromCaktoRefId()` identificar um tenant, o que hoje NUNCA acontece (item 3 abaixo). Evento fica `RECEIVED`, pendente. |
+| `purchase_approved`, `data.paidAt` valido, `data.customer.email` bate com um OWNER ativo | Calcula o novo periodo (`data.paidAt` + 30 dias) e chama `applyBillingWebhookEvent()` -- PRO/ACTIVE de verdade. |
+| `purchase_approved`, `data.paidAt` valido, mas email nao identifica um tenant unico | Evento fica `RECEIVED`, pendente de reconciliacao manual -- nunca adivinha. |
 | `purchase_approved`, sem `data.paidAt` valido | Evento marcado `FAILED` em `billing_events.status`, com o motivo em `errorMessage`. Ainda responde `200` (para a Cakto nao reentregar para sempre algo que nunca vai ficar valido). |
 | Qualquer outro `event` (nomes ainda nao confirmados) | Gravado, mas nunca aplicado -- o sistema so age sobre eventos cujo significado foi confirmado. |
 
@@ -98,26 +99,22 @@ disponivel em `billing_events` (status `RECEIVED`) para reconciliacao manual.
   exato de cada evento (idealmente com um payload de exemplo, como o que ja
   temos para `purchase_approved`).
 
-**3. Correlacao entre o evento de webhook e o tenant do nosso sistema**
+**3. Correlacao entre o evento de webhook e o tenant do nosso sistema -- RESOLVIDO**
 
-- **Por que e necessario:** como o link de checkout e o mesmo link estatico
-  para todos os pet shops (ver acima), o payload do webhook precisa trazer
-  alguma informacao que identifique QUAL tenant comprou. Sem isso, nao ha
-  como atualizar "so o tenant que pagou" sem arriscar atualizar o errado --
-  e o requisito de isolamento entre tenants e explicito e inegociavel aqui.
-- **Onde encontrar na Cakto:** depende de qual recurso a Cakto oferece.
-  Possibilidades comuns em checkouts hospedados (nenhuma confirmada ainda
-  para esta conta):
-  - um parametro de referencia externa que pode ser anexado ao link de
-    checkout (ex.: `?ref=` ou `?external_id=`) e que a Cakto ecoa de volta
-    no payload do webhook;
-  - o e-mail do comprador no checkout, correlacionado ao e-mail do OWNER do
-    tenant (mais fragil -- exige e-mails identicos e sem duplicidade);
-  - um identificador de produto/oferta por tenant, se a Cakto permitir criar
-    um link de checkout distinto por cliente.
-- **O que enviar:** se a Cakto suportar um parametro de referencia
-  externa que retorna no webhook, esse e o nome do parametro. Caso contrario,
-  como a Cakto sugere identificar o comprador no payload recebido.
+`resolveTenantIdFromCaktoEvent()` (`cakto-events.ts`) casa `data.customer.email`
+(normalizado) contra `users.email` (globalmente unico, `users_email_unique`)
+restrito a `role = 'OWNER'` e `active = true`. So aplica quando o resultado e
+INEQUIVOCO (exatamente um match); zero ou mais de um -> `null`, evento fica
+`RECEIVED` para reconciliacao manual, nada e alterado. Testado ponta a ponta
+via HTTP real em `cakto.test.ts`, incluindo o caso critico: pagamento do
+Tenant A nunca ativa o Tenant B.
+
+**Limite conhecido, nao escondido:** se a pessoa usar no checkout da Cakto um
+email DIFERENTE do que usa para logar no PetFlow, a correlacao falha (com
+seguranca -- fica pendente, nunca adivinha). Se a Cakto no futuro confirmar
+que `refId` pode ser definido por nos (parametro no link de checkout, ecoado
+no webhook), essa seria uma correlacao mais robusta -- mas nao e mais um
+bloqueador: o sistema funciona hoje para o caso comum (mesmo email).
 
 ### Payload confirmado: `purchase_approved`
 
@@ -270,15 +267,13 @@ botao desabilitado "Pagamento em processamento" enquanto aguarda.
 ## Isolamento entre tenants (critico)
 
 Se o Tenant A pagar, so o Tenant A vira PRO -- nunca todos os tenants, nunca
-uma liberacao global. Hoje isso e garantido porque o webhook, mesmo aceitando
-e gravando um evento autentico, nunca chama `applyBillingWebhookEvent()`
-(ninguem vira PRO por engano porque nenhuma assinatura e alterada). Uma
-vez que o item 3 acima ("Correlacao de tenant") for resolvido, a garantia
-passa a ser: o `tenantId` usado para atualizar `subscriptions` vem
-exclusivamente do que o evento do webhook permitir identificar -- nunca de um
-`tenantId` enviado pelo cliente/frontend. `applyBillingWebhookEvent` ja roda
-com esse principio (recebe o tenant como parametro explicito, nao infere de
-sessao).
+uma liberacao global. O `tenantId` usado para atualizar `subscriptions` vem
+exclusivamente de `resolveTenantIdFromCaktoEvent()` (email do OWNER, ver
+acima) -- nunca de um `tenantId` enviado pelo cliente/frontend, e nunca de um
+palpite quando o resultado nao e inequivoco. Testado explicitamente em
+`cakto.test.ts` ("CRITICO: pagamento com o email do OWNER do Tenant A nunca
+ativa o Tenant B") -- dois tenants criados, pagamento de um, o outro
+confirmado intocado no banco.
 
 ## Seguranca
 
@@ -325,9 +320,10 @@ aprovado.
 | Tabela de idempotencia (`billing_events`) | Pronta e testada, inclusive via HTTP real |
 | Evento `purchase_approved` | Payload completo confirmado e documentado acima |
 | Calculo dos 30 dias (`paidAt` + 30 dias -> `current_period_end`) | Implementado e testado (`cakto-events.ts`, `cakto-events.test.ts`) |
-| Ativacao ACTIVE/PRO via `applyBillingWebhookEvent` | Implementada e testada ponta a ponta contra o banco -- falta so o webhook conseguir chamar isso sozinho |
+| Ativacao ACTIVE/PRO via `applyBillingWebhookEvent`, ponta a ponta via HTTP | **Implementada e testada** (inclusive isolamento entre tenants) |
+| Correlacao evento -> tenant (`resolveTenantIdFromCaktoEvent`, por email do OWNER) | **Implementada e testada** -- limite conhecido: exige mesmo email no checkout e no login |
 | Idempotencia (tabela de eventos E assinatura, nao soma dias em reentrega) | Implementada e testada |
 | Nomes dos demais eventos (past due, cancelamento, reembolso, chargeback) | **AGUARDANDO CONFIGURACAO DO PROJETO** |
-| Correlacao evento -> tenant (`resolveTenantIdFromCaktoRefId` sempre devolve null hoje) | **AGUARDANDO CONFIGURACAO DO PROJETO** -- bloqueador critico |
-| `CAKTO_WEBHOOK_SECRET` em producao | Vazia em `.env.example`, aguardando confirmacao do valor real salvo no painel Cakto |
+| `CAKTO_WEBHOOK_SECRET` em producao | Valor real fornecido -- falta configurar como variavel de ambiente no host publico da API (ainda nao definido) |
+| API publicada externamente | **NAO PUBLICADA** -- nenhum host (Railway/Render/Fly/etc.) configurado ainda |
 | URL publica do webhook (para cadastrar na Cakto) | **AGUARDANDO** -- ver secao de teste em producao |

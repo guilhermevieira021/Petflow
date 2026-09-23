@@ -3,7 +3,6 @@ import {
   CAKTO_PRO_PERIOD_DAYS,
   computeProPeriodEnd,
   parseCaktoPurchaseApprovedEvent,
-  resolveTenantIdFromCaktoRefId,
 } from '../modules/billing/cakto-events.js';
 
 /**
@@ -12,6 +11,9 @@ import {
  * O caso "5.1/14" do pedido do usuario -- verificar a regra dos 30 dias sem
  * esperar 30 dias de verdade -- vive aqui: `computeProPeriodEnd` e uma
  * funcao pura, deterministica, testada com datas fixas.
+ *
+ * `resolveTenantIdFromCaktoEvent` precisa de banco (consulta `users`) --
+ * seus testes ficam em cakto.test.ts, junto do resto da integracao.
  */
 
 describe('computeProPeriodEnd', () => {
@@ -95,11 +97,12 @@ describe('parseCaktoPurchaseApprovedEvent', () => {
     expect(parsed!.refId).toBeNull();
     expect(parsed!.providerSubscriptionId).toBeNull();
   });
-});
 
-describe('resolveTenantIdFromCaktoRefId', () => {
-  it('AGUARDANDO CONFIGURACAO DO PROJETO: sempre devolve null ate a correlacao ser confirmada (ver CAKTO.md)', () => {
-    expect(resolveTenantIdFromCaktoRefId('9vbgfmg')).toBeNull();
-    expect(resolveTenantIdFromCaktoRefId(null)).toBeNull();
+  it('normaliza o email (trim + lowercase) igual ao cadastro/login -- senao nunca bateria com users.email', () => {
+    const parsed = parseCaktoPurchaseApprovedEvent({
+      ...payloadExemploConfirmadoPelaCakto,
+      customer: { name: 'John Doe', email: '  John.Doe@Example.COM  ' },
+    });
+    expect(parsed!.customerEmail).toBe('john.doe@example.com');
   });
 });
