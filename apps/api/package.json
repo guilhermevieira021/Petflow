@@ -15,7 +15,8 @@
     "db:migrate": "tsx --env-file-if-exists=../../.env src/db/cli/migrate.ts",
     "db:migrate:prod": "node --env-file-if-exists=../../.env dist/db/cli/migrate.js",
     "db:seed": "tsx --env-file-if-exists=../../.env src/db/cli/seed.ts",
-    "db:reset": "tsx --env-file-if-exists=../../.env src/db/cli/reset.ts"
+    "db:reset": "tsx --env-file-if-exists=../../.env src/db/cli/reset.ts",
+    "db:grant-pro": "tsx --env-file-if-exists=../../.env src/db/cli/grant-pro.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",
