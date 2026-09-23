@@ -69,7 +69,7 @@ export function CustomersListPage() {
               }}
               placeholder="Buscar por nome, telefone ou email"
               aria-label="Buscar clientes"
-              className="h-9.5 w-full rounded-[var(--radius-md)] border border-[var(--color-border-strong)] bg-[var(--color-surface)] pr-3 pl-9 text-sm"
+              className="h-9.5 w-full rounded-[var(--radius-md)] border border-[var(--color-border-strong)] bg-[var(--color-surface)] pr-3 pl-9 text-base sm:text-sm"
             />
           </div>
         </div>

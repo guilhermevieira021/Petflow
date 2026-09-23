@@ -61,7 +61,7 @@ export function ReportsPage() {
             type="date"
             value={from}
             onChange={(event) => setFrom(event.target.value)}
-            className="h-9 rounded-[var(--radius-md)] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-2.5 text-sm"
+            className="h-9 rounded-[var(--radius-md)] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-2.5 text-base sm:text-sm"
           />
         </label>
         <label className="flex flex-col gap-1 text-[0.8125rem]">
@@ -70,7 +70,7 @@ export function ReportsPage() {
             type="date"
             value={to}
             onChange={(event) => setTo(event.target.value)}
-            className="h-9 rounded-[var(--radius-md)] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-2.5 text-sm"
+            className="h-9 rounded-[var(--radius-md)] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-2.5 text-base sm:text-sm"
           />
         </label>
       </div>

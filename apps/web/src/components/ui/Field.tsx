@@ -11,7 +11,10 @@ import { cn } from '@/lib/cn';
 
 const CONTROL_BASE = cn(
   'w-full rounded-[var(--radius-md)] border bg-[var(--color-surface)] px-3',
-  'text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-subtle)]',
+  // text-base (16px) no mobile: abaixo disso o iOS Safari da zoom automatico
+  // ao focar o campo, e o zoom fica preso -- sm: volta para o tamanho normal
+  // no desktop, onde isso nao acontece. So a fonte muda, nada mais no visual.
+  'text-base sm:text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-subtle)]',
   'transition-colors duration-150',
   'disabled:cursor-not-allowed disabled:bg-[var(--color-surface-sunken)] disabled:text-[var(--color-text-subtle)]',
 );
