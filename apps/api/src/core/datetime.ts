@@ -29,6 +29,17 @@ export function shiftDate(date: string, days: number): string {
   return instant.toISOString().slice(0, 10);
 }
 
+/**
+ * Domingo (0) como inicio da semana, em CALENDARIO puro -- a mesma regra
+ * usada pela visao de semana da agenda (AgendaPage.tsx). Precisa ser a mesma
+ * definicao dos dois lados: um "previsto na semana" do dashboard que nao
+ * bate com a semana que a agenda mostra confundiria mais do que ajudaria.
+ */
+export function startOfWeek(date: string): string {
+  const weekday = new Date(`${date}T00:00:00Z`).getUTCDay();
+  return shiftDate(date, -weekday);
+}
+
 /** Lista de datas YYYY-MM-DD de `from` ate `to`, inclusive. */
 export function dateRange(from: string, to: string): string[] {
   const dates: string[] = [];

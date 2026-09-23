@@ -40,10 +40,22 @@ export interface DashboardRevenuePoint {
   received: number;
 }
 
+export interface DashboardWeekMetrics {
+  /** Domingo da semana que contem referenceDate. */
+  weekStart: string;
+  /** Sabado da mesma semana. */
+  weekEnd: string;
+  /** Soma dos agendamentos da semana inteira que ainda podem gerar receita (mesma regra de today.expectedRevenue). */
+  expectedRevenue: number;
+  /** Soma dos pagamentos recebidos na semana inteira (mesma regra de today.receivedRevenue). */
+  receivedRevenue: number;
+}
+
 export interface DashboardOverview {
   referenceDate: string;
   timezone: string;
   today: DashboardTodayMetrics;
+  week: DashboardWeekMetrics;
   customers: {
     total: number;
     newThisMonth: number;

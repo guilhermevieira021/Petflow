@@ -6,6 +6,8 @@ import {
   CalendarDays,
   CheckCircle2,
   MessageCircle,
+  MinusCircle,
+  Percent,
   TrendingUp,
   UserRoundPlus,
   UserRoundX,
@@ -15,7 +17,7 @@ import { Link } from 'react-router-dom';
 import { Badge, Card, CardBody, CardHeader, EmptyState, ErrorState, PageHeader, Skeleton } from '@/components/ui/primitives';
 import { useCurrentSession } from '@/features/auth/session';
 import { ApiError, api } from '@/lib/api';
-import { formatDateLong, formatMoney, formatTime, whatsappLink } from '@/lib/format';
+import { formatDateLong, formatMoney, formatPercent, formatTime, realizedPercentage, whatsappLink } from '@/lib/format';
 import { OnboardingChecklist } from './OnboardingChecklist';
 import { RevenueChart } from './RevenueChart';
 
@@ -77,23 +79,85 @@ function StatTile({
 }
 
 /* ---------------------------------------------------------------------------
+   Previsto/Recebido/Nao realizado/% realizado -- MESMOS quatro indicadores
+   para "hoje" e para "semana", so a janela de dados muda (ver
+   dashboard.service.ts: buildTodayMetrics e buildWeekMetrics aplicam a
+   mesma regra -- cancelado/no-show fora do previsto, pagamento por paidAt --
+   cada uma na sua janela). Um unico componente evita as duas versoes
+   divergirem por acidente.
+--------------------------------------------------------------------------- */
+
+function RevenueTiles({ expected, received }: { expected: number; received: number }) {
+  // Subtracao direta, sem piso em zero: se um dia receber mais do que o
+  // previsto (ex.: pagamento adiantado), isso aparece como numero negativo
+  // em vez de escondido -- e o dado real, nao um "cliente perdido".
+  const notRealized = expected - received;
+  const percentage = realizedPercentage(expected, received);
+
+  return (
+    <>
+      <StatTile
+        label="Previsto"
+        value={formatMoney(expected)}
+        icon={<TrendingUp className="size-4" />}
+      />
+      <StatTile
+        label="Recebido"
+        value={formatMoney(received)}
+        icon={<CheckCircle2 className="size-4" />}
+        tone="success"
+      />
+      <StatTile
+        label="Nao realizado"
+        value={formatMoney(notRealized)}
+        detail="Previsto menos recebido"
+        icon={<MinusCircle className="size-4" />}
+        tone={notRealized > 0 ? 'warning' : 'neutral'}
+      />
+      <StatTile
+        label="% realizado"
+        value={formatPercent(percentage)}
+        icon={<Percent className="size-4" />}
+        tone={percentage !== null && percentage >= 100 ? 'success' : 'neutral'}
+      />
+    </>
+  );
+}
+
+/* ---------------------------------------------------------------------------
    Estado de carregamento -- skeleton com a MESMA geometria do conteudo real,
    para o layout nao saltar quando os dados chegam.
 --------------------------------------------------------------------------- */
 
+function StatTileSkeleton() {
+  return (
+    <Card className="p-4">
+      <Skeleton className="h-3 w-24" />
+      <Skeleton className="mt-3 h-7 w-16" />
+      <Skeleton className="mt-2 h-3 w-28" />
+    </Card>
+  );
+}
+
 function DashboardSkeleton() {
   return (
     <div aria-busy="true" aria-live="polite">
-      <span className="sr-only">Carregando indicadores do dia</span>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {Array.from({ length: 4 }, (_, index) => (
-          <Card key={index} className="p-4">
-            <Skeleton className="h-3 w-24" />
-            <Skeleton className="mt-3 h-7 w-16" />
-            <Skeleton className="mt-2 h-3 w-28" />
-          </Card>
+      <span className="sr-only">Carregando indicadores do dia e da semana</span>
+
+      <Skeleton className="mb-2 h-3.5 w-12" />
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        {Array.from({ length: 5 }, (_, index) => (
+          <StatTileSkeleton key={index} />
         ))}
       </div>
+
+      <Skeleton className="mt-5 mb-2 h-3.5 w-20" />
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {Array.from({ length: 4 }, (_, index) => (
+          <StatTileSkeleton key={index} />
+        ))}
+      </div>
+
       <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <Card>
           <CardBody>
@@ -233,37 +297,30 @@ export function DashboardPage() {
 
       {query.data ? (
         <>
-          <section aria-label="Indicadores de hoje" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {/* Hoje e semana usam a MESMA regra de calculo (ver dashboard.service.ts) --
+              so a janela de dados muda. Separados em duas secoes com titulo
+              proprio para nunca serem confundidos um com o outro. */}
+          <h2 className="mb-2 text-[0.8125rem] font-semibold text-[var(--color-text-muted)]">Hoje</h2>
+          <section aria-label="Indicadores de hoje" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
             <StatTile
               label="Atendimentos hoje"
               value={String(query.data.today.total)}
               detail={`${query.data.today.confirmed} confirmados, ${query.data.today.completed} concluidos`}
               icon={<CalendarDays className="size-4" />}
             />
-            <StatTile
-              label="Previsto hoje"
-              value={formatMoney(query.data.today.expectedRevenue)}
-              detail={
-                query.data.today.cancelled + query.data.today.noShow > 0
-                  ? `${query.data.today.cancelled} cancelados, ${query.data.today.noShow} faltas`
-                  : 'Sem cancelamentos ate agora'
-              }
-              icon={<TrendingUp className="size-4" />}
+            <RevenueTiles
+              expected={query.data.today.expectedRevenue}
+              received={query.data.today.receivedRevenue}
             />
-            <StatTile
-              label="Recebido hoje"
-              value={formatMoney(query.data.today.receivedRevenue)}
-              detail="Pagamentos ja registrados"
-              icon={<CheckCircle2 className="size-4" />}
-              tone="success"
-            />
-            <StatTile
-              label="Clientes sumidos"
-              value={String(query.data.customers.inactive)}
-              detail={`Sem agendar ha mais de ${query.data.customers.inactiveThresholdDays} dias`}
-              icon={<UserRoundX className="size-4" />}
-              tone={query.data.customers.inactive > 0 ? 'warning' : 'neutral'}
-              to="/recuperacao"
+          </section>
+
+          <h2 className="mt-5 mb-2 text-[0.8125rem] font-semibold text-[var(--color-text-muted)]">
+            Esta semana
+          </h2>
+          <section aria-label="Indicadores da semana" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <RevenueTiles
+              expected={query.data.week.expectedRevenue}
+              received={query.data.week.receivedRevenue}
             />
           </section>
 
@@ -295,7 +352,7 @@ export function DashboardPage() {
 
           <section
             aria-label="Indicadores de clientes"
-            className="mt-4 grid gap-3 sm:grid-cols-3"
+            className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
           >
             <StatTile
               label="Clientes ativos"
@@ -315,6 +372,14 @@ export function DashboardPage() {
               detail="Ja atendidos, sem proximo agendamento"
               icon={<CalendarClock className="size-4" />}
               tone={query.data.pendingReturns > 0 ? 'warning' : 'neutral'}
+              to="/recuperacao"
+            />
+            <StatTile
+              label="Clientes sumidos"
+              value={String(query.data.customers.inactive)}
+              detail={`Sem agendar ha mais de ${query.data.customers.inactiveThresholdDays} dias`}
+              icon={<UserRoundX className="size-4" />}
+              tone={query.data.customers.inactive > 0 ? 'warning' : 'neutral'}
               to="/recuperacao"
             />
           </section>

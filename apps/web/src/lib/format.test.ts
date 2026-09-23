@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { formatMoney, formatPhone, initials, whatsappLink } from './format';
+import {
+  formatMoney,
+  formatPercent,
+  formatPhone,
+  initials,
+  realizedPercentage,
+  whatsappLink,
+} from './format';
 
 /**
  * Intl.NumberFormat('pt-BR') pode usar um espaco unicode nao-quebravel entre
@@ -47,6 +54,32 @@ describe('whatsappLink', () => {
   it('devolve null para telefone ausente ou curto demais', () => {
     expect(whatsappLink(null)).toBeNull();
     expect(whatsappLink('123')).toBeNull();
+  });
+});
+
+describe('realizedPercentage', () => {
+  it('calcula recebido sobre previsto, arredondado', () => {
+    expect(realizedPercentage(100, 62)).toBe(62);
+    expect(realizedPercentage(150, 65)).toBe(43); // 43.33... -> 43
+  });
+
+  it('devolve null quando nao ha previsto (nunca inventa 0% ou 100%)', () => {
+    expect(realizedPercentage(0, 0)).toBeNull();
+    expect(realizedPercentage(-10, 0)).toBeNull();
+  });
+
+  it('permite passar de 100% -- recebido pode exceder o previsto (ex.: pagamento adiantado)', () => {
+    expect(realizedPercentage(100, 150)).toBe(150);
+  });
+});
+
+describe('formatPercent', () => {
+  it('formata com o sinal de porcentagem', () => {
+    expect(formatPercent(62)).toBe('62%');
+  });
+
+  it('mostra -- em vez de um numero quando nao ha base de calculo', () => {
+    expect(formatPercent(null)).toBe('--');
   });
 });
 

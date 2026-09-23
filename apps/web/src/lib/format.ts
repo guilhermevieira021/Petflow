@@ -24,6 +24,20 @@ export function formatMoneyCompact(value: number): string {
   return compactCurrencyFormatter.format(value);
 }
 
+/**
+ * `received / expected` como percentual, ex.: 62%. `null` quando nao ha
+ * base de calculo (`expected` zero ou negativo) -- nesse caso a tela mostra
+ * "--" em vez de inventar 0% ou 100%, que mentiriam sobre "nada previsto".
+ */
+export function realizedPercentage(expected: number, received: number): number | null {
+  if (expected <= 0) return null;
+  return Math.round((received / expected) * 100);
+}
+
+export function formatPercent(value: number | null): string {
+  return value === null ? '--' : `${value}%`;
+}
+
 /** (11) 98888-7777 a partir de digitos puros. */
 export function formatPhone(digits: string | null | undefined): string {
   if (!digits) return '';

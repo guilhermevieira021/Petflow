@@ -3,9 +3,10 @@ import {
   type DashboardRevenuePoint,
   type DashboardTodayMetrics,
   type DashboardUpcomingAppointment,
+  type DashboardWeekMetrics,
 } from '@petflow/contracts';
 import { and, asc, eq, gte, inArray, isNull, lt, sql } from 'drizzle-orm';
-import { dateRange, shiftDate, toLocalDate, todayInTimeZone } from '../../core/datetime.js';
+import { dateRange, shiftDate, startOfWeek, toLocalDate, todayInTimeZone } from '../../core/datetime.js';
 import { toCount, toIsoRequired, toNumber } from '../../core/serialization.js';
 import type { Transaction } from '../../db/client.js';
 import type { TenantContext } from '../../db/context.js';
@@ -37,10 +38,18 @@ export async function getOverview(
   const referenceDate = referenceDateInput ?? todayInTimeZone(timeZone);
 
   const windowStart = shiftDate(referenceDate, -(REVENUE_WINDOW_DAYS - 1));
-  const windowEndExclusive = shiftDate(referenceDate, 1);
+  const weekStart = startOfWeek(referenceDate);
+  const weekEnd = shiftDate(weekStart, 6);
+  // A semana pode se estender ALEM de hoje (ex.: referenceDate = terca-feira
+  // -> quinta/sexta/sabado ja tem agendamento marcado, mesmo sem terem
+  // acontecido ainda). weekEnd e sempre >= referenceDate (referenceDate esta
+  // dentro da propria semana, por definicao de startOfWeek), entao o fim da
+  // leitura precisa cobrir ate o fim da semana, nao so ate hoje.
+  const readEndExclusive = shiftDate(weekEnd, 1);
 
-  // Uma unica leitura cobre as metricas do dia E a serie de 14 dias: evita
-  // repetir a mesma varredura por indice varias vezes (e evita N+1).
+  // Uma unica leitura cobre as metricas do dia, da semana E a serie de 14
+  // dias: evita repetir a mesma varredura por indice varias vezes (e evita
+  // N+1).
   const windowAppointments = await tx
     .select({
       startsAt: appointments.startsAt,
@@ -52,7 +61,7 @@ export async function getOverview(
       and(
         eq(appointments.tenantId, context.tenantId),
         gte(appointments.startsAt, localDayStart(windowStart, timeZone)),
-        lt(appointments.startsAt, localDayStart(windowEndExclusive, timeZone)),
+        lt(appointments.startsAt, localDayStart(readEndExclusive, timeZone)),
       ),
     )
     .limit(MAX_WINDOW_ROWS);
@@ -65,12 +74,13 @@ export async function getOverview(
         eq(payments.tenantId, context.tenantId),
         eq(payments.status, 'PAID'),
         gte(payments.paidAt, localDayStart(windowStart, timeZone)),
-        lt(payments.paidAt, localDayStart(windowEndExclusive, timeZone)),
+        lt(payments.paidAt, localDayStart(readEndExclusive, timeZone)),
       ),
     )
     .limit(MAX_WINDOW_ROWS);
 
   const today = buildTodayMetrics(windowAppointments, windowPayments, referenceDate, timeZone);
+  const week = buildWeekMetrics(windowAppointments, windowPayments, weekStart, weekEnd, timeZone);
   const revenueSeries = buildRevenueSeries(
     windowAppointments,
     windowPayments,
@@ -93,6 +103,7 @@ export async function getOverview(
     referenceDate,
     timezone: timeZone,
     today,
+    week,
     customers: customerMetrics,
     pendingReturns,
     upcoming,
@@ -161,6 +172,44 @@ function buildTodayMetrics(
   metrics.expectedRevenue = round2(metrics.expectedRevenue);
   metrics.receivedRevenue = round2(metrics.receivedRevenue);
   return metrics;
+}
+
+/**
+ * Mesma regra de `buildTodayMetrics` (cancelado/no-show fora do previsto,
+ * pagamento por `paidAt`), so que somando a semana de calendario inteira
+ * (domingo a sabado) em vez de um unico dia -- para "previsto na semana" e
+ * "recebido na semana" nunca poderem divergir de como "hoje" e calculado.
+ */
+function buildWeekMetrics(
+  windowAppointments: WindowAppointment[],
+  windowPayments: WindowPayment[],
+  weekStart: string,
+  weekEnd: string,
+  timeZone: string,
+): DashboardWeekMetrics {
+  let expectedRevenue = 0;
+  let receivedRevenue = 0;
+
+  for (const row of windowAppointments) {
+    if (row.status === 'CANCELLED' || row.status === 'NO_SHOW') continue;
+    const day = toLocalDate(row.startsAt, timeZone);
+    if (day < weekStart || day > weekEnd) continue;
+    expectedRevenue += toNumber(row.price);
+  }
+
+  for (const payment of windowPayments) {
+    if (!payment.paidAt) continue;
+    const day = toLocalDate(payment.paidAt, timeZone);
+    if (day < weekStart || day > weekEnd) continue;
+    receivedRevenue += toNumber(payment.amount);
+  }
+
+  return {
+    weekStart,
+    weekEnd,
+    expectedRevenue: round2(expectedRevenue),
+    receivedRevenue: round2(receivedRevenue),
+  };
 }
 
 function buildRevenueSeries(
