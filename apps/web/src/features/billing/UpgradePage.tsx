@@ -1,6 +1,7 @@
 import { FEATURE_LABELS, FeatureKey, type PlanDto } from '@petflow/contracts';
 import { useQuery } from '@tanstack/react-query';
-import { Check, LogOut, PawPrint, ShieldCheck } from 'lucide-react';
+import { Check, LogOut, ShieldCheck } from 'lucide-react';
+import { Logo } from '@/components/brand/Logo';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
@@ -32,7 +33,7 @@ export function UpgradePage() {
   const reason = session.billing.access.reason;
   const headline =
     reason === 'TRIAL_EXPIRED'
-      ? 'Seu periodo de teste terminou.'
+      ? 'Seu período de teste terminou.'
       : reason === 'SUBSCRIPTION_CANCELLED'
         ? 'Sua assinatura foi encerrada.'
         : 'Sua assinatura precisa ser reativada.';
@@ -63,10 +64,7 @@ export function UpgradePage() {
   return (
     <div className="flex min-h-dvh flex-col bg-[var(--color-canvas)]">
       <header className="flex items-center justify-between px-5 py-4 sm:px-8">
-        <div className="flex items-center gap-2">
-          <PawPrint aria-hidden className="size-5 text-[var(--color-brand)]" />
-          <span className="font-semibold tracking-tight">PetFlow</span>
-        </div>
+        <Logo />
         <button
           type="button"
           onClick={() => logout.mutate()}
@@ -78,15 +76,15 @@ export function UpgradePage() {
       </header>
 
       <main className="flex flex-1 items-center justify-center px-5 py-10 sm:px-6">
-        <div className="w-full max-w-md rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface)] p-7 shadow-[var(--shadow-md)] sm:p-8">
+        <div className="w-full max-w-md rounded-[var(--radius-2xl)] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-lg)] sm:p-9">
           <div className="flex size-11 items-center justify-center rounded-full bg-[var(--color-brand-subtle)]">
             <ShieldCheck aria-hidden className="size-5 text-[var(--color-brand-text)]" />
           </div>
 
           <h1 className="mt-4 text-xl font-semibold tracking-tight">{headline}</h1>
           <p className="mt-1.5 text-sm text-[var(--color-text-muted)]">
-            Continue fazendo o {session.tenant.name} crescer -- seus clientes, pets e agenda continuam
-            salvos, esperando por voce.
+            Continue fazendo o {session.tenant.name} crescer. Seus clientes, pets e agenda continuam
+            salvos, esperando por você.
           </p>
 
           {proPlan ? (
@@ -96,7 +94,7 @@ export function UpgradePage() {
               </p>
               <p className="mt-1 text-2xl font-semibold tracking-tight">
                 {formatMoney(proPlan.priceCents / 100)}
-                <span className="ml-1 text-sm font-normal text-[var(--color-text-muted)]">/mes</span>
+                <span className="ml-1 text-sm font-normal text-[var(--color-text-muted)]">/mês</span>
               </p>
               <ul className="mt-4 flex flex-col gap-2">
                 {[FeatureKey.AUTOMATION, FeatureKey.ADVANCED_REPORTS, FeatureKey.UNLIMITED_RETENTION_WINDOW].map(
@@ -130,7 +128,7 @@ export function UpgradePage() {
 
           <div className="mt-4 flex justify-center gap-4 text-[0.8125rem]">
             <Link to="/billing" className="text-[var(--color-brand-text)] underline-offset-4 hover:underline">
-              Ver cobranca
+              Ver cobrança
             </Link>
             <Link to="/planos" className="text-[var(--color-text-muted)] underline-offset-4 hover:underline">
               Comparar planos

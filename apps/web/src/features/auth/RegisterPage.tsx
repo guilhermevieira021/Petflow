@@ -59,11 +59,11 @@ export function RegisterPage() {
 
   return (
     <AuthShell
-      title="Cadastre seu pet shop"
-      subtitle="Leva menos de um minuto. Voce ja entra direto no sistema."
+      title="Comece seu teste grátis"
+      subtitle="Sem cartão de crédito. Em menos de um minuto você já está dentro do sistema."
       footer={
         <p className="text-[var(--color-text-muted)]">
-          Ja tem conta?{' '}
+          Já tem uma conta?{' '}
           <Link
             to="/entrar"
             className="font-medium text-[var(--color-brand-text)] underline-offset-4 hover:underline"
@@ -95,7 +95,7 @@ export function RegisterPage() {
         />
 
         <TextField
-          label="Email"
+          label="E-mail"
           name="email"
           type="email"
           autoComplete="email"
@@ -109,18 +109,18 @@ export function RegisterPage() {
           name="password"
           type="password"
           autoComplete="new-password"
-          placeholder="Minimo 8 caracteres"
-          hint="Use ao menos 8 caracteres, com letras e numeros."
+          placeholder="Mínimo de 8 caracteres"
+          hint="Use ao menos 8 caracteres, com letras e números."
           required
           error={apiError?.fieldError('password')}
         />
 
         <Button type="submit" size="lg" loading={registerMutation.isPending} className="mt-1 w-full">
-          Criar conta e comecar
+          Criar conta e começar o teste
         </Button>
 
         <p className="text-center text-[0.75rem] leading-relaxed text-[var(--color-text-subtle)]">
-          Voce sera o proprietario da conta, com acesso total as configuracoes e a equipe.
+          Você será o proprietário da conta, com acesso total às configurações e à equipe.
         </p>
       </form>
     </AuthShell>

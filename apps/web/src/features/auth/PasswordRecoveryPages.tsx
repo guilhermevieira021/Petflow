@@ -29,8 +29,8 @@ export function ForgotPasswordPage() {
   if (submitted) {
     return (
       <AuthShell
-        title="Confira seu email"
-        subtitle="Se este email estiver cadastrado, enviaremos as instrucoes de recuperacao em instantes."
+        title="Confira seu e-mail"
+        subtitle="Se este e-mail estiver cadastrado, enviaremos as instruções de recuperação em instantes."
         footer={
           <Link
             to="/entrar"
@@ -54,7 +54,7 @@ export function ForgotPasswordPage() {
   return (
     <AuthShell
       title="Recuperar senha"
-      subtitle="Informe o email cadastrado e enviaremos um link para criar uma nova senha."
+      subtitle="Informe o e-mail cadastrado e enviaremos um link para criar uma nova senha."
       footer={
         <Link
           to="/entrar"
@@ -66,7 +66,7 @@ export function ForgotPasswordPage() {
     >
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
         <TextField
-          label="Email"
+          label="E-mail"
           name="email"
           type="email"
           autoComplete="email"
@@ -119,8 +119,8 @@ export function ResetPasswordPage() {
   if (!token) {
     return (
       <AuthShell
-        title="Link invalido"
-        subtitle="Este link de recuperacao esta incompleto ou expirou."
+        title="Link inválido"
+        subtitle="Este link de recuperação está incompleto ou expirou."
         footer={
           <Link
             to="/esqueci-senha"
@@ -136,7 +136,7 @@ export function ResetPasswordPage() {
   }
 
   return (
-    <AuthShell title="Criar nova senha" subtitle="Escolha uma senha que voce ainda nao usa.">
+    <AuthShell title="Criar nova senha" subtitle="Escolha uma senha que você ainda não usa.">
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
         {formError ? <FormAlert message={formError} /> : null}
 

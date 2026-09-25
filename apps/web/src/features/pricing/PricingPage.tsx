@@ -6,7 +6,8 @@ import {
   type PlanDto,
 } from '@petflow/contracts';
 import { useQuery } from '@tanstack/react-query';
-import { Check, PawPrint, X } from 'lucide-react';
+import { Check, X } from 'lucide-react';
+import { Logo } from '@/components/brand/Logo';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
@@ -15,7 +16,7 @@ import { useToast } from '@/components/ui/Toast';
 import { useSession } from '@/features/auth/session';
 import { ApiError, api } from '@/lib/api';
 import { isReturningFromCheckout, markCheckoutStarted } from '@/lib/checkout';
-import { formatMoney } from '@/lib/format';
+import { formatMoney, formatTrialPeriod } from '@/lib/format';
 
 const LIMIT_ROWS: LimitKey[] = [
   LimitKey.CUSTOMERS,
@@ -43,10 +44,12 @@ function PlanPrice({ plan }: { plan: PlanDto }) {
   if (plan.code === 'TRIAL') {
     return (
       <p className="text-3xl font-semibold tracking-tight">
-        Gratis
-        <span className="ml-1.5 text-base font-normal text-[var(--color-text-muted)]">
-          por {plan.trialHours}h
-        </span>
+        Grátis
+        {formatTrialPeriod(plan.trialHours) ? (
+          <span className="ml-1.5 text-base font-normal text-[var(--color-text-muted)]">
+            por {formatTrialPeriod(plan.trialHours)}
+          </span>
+        ) : null}
       </p>
     );
   }
@@ -74,7 +77,7 @@ function PlanCTA({ plan }: { plan: PlanDto }) {
     return (
       <Link to="/criar-conta" className="block">
         <Button size="lg" className="w-full">
-          {plan.code === 'TRIAL' ? 'Comecar teste gratuito' : 'Comecar teste e assinar'}
+          Começar teste grátis
         </Button>
       </Link>
     );
@@ -138,6 +141,8 @@ export function PricingPage() {
     queryFn: () => api.get<{ data: PlanDto[] }>('/plans'),
   });
 
+  const trialPeriod = formatTrialPeriod(query.data?.data.find((plan) => plan.code === 'TRIAL')?.trialHours);
+
   const content = (
     <div className="mx-auto w-full max-w-4xl px-5 py-14 sm:px-6">
       <div className="text-center">
@@ -145,7 +150,9 @@ export function PricingPage() {
           Escolha o plano para o seu pet shop
         </h1>
         <p className="mx-auto mt-3 max-w-xl text-[0.9375rem] text-[var(--color-text-muted)]">
-          Comece com 48 horas de teste gratuito. Sem cartao de credito.
+          {trialPeriod
+            ? `Comece com ${trialPeriod} de teste grátis. Sem cartão de crédito.`
+            : 'Comece com um teste grátis. Sem cartão de crédito.'}
         </p>
       </div>
 
@@ -265,9 +272,8 @@ export function PricingPage() {
     <div className="min-h-dvh bg-[var(--color-surface)]">
       <header className="border-b border-[var(--color-border)]">
         <div className="mx-auto flex w-full max-w-4xl items-center justify-between px-5 py-4 sm:px-6">
-          <Link to="/" className="flex items-center gap-2">
-            <PawPrint aria-hidden className="size-5 text-[var(--color-brand)]" />
-            <span className="font-semibold tracking-tight">PetFlow</span>
+          <Link to="/" className="flex items-center">
+            <Logo />
           </Link>
           <Link to="/entrar" className="text-sm font-medium text-[var(--color-text-muted)] hover:text-[var(--color-text)]">
             Entrar

@@ -6,12 +6,23 @@ import { initials } from '@/lib/format';
    Card
 --------------------------------------------------------------------------- */
 
-export function Card({ className, children }: { className?: string; children: ReactNode }) {
+export function Card({
+  className,
+  children,
+  tone = 'default',
+}: {
+  className?: string;
+  children: ReactNode;
+  /** `ink`: superficie escura para o que tem maior peso na tela. */
+  tone?: 'default' | 'ink' | 'sunken';
+}) {
   return (
     <div
       className={cn(
-        'rounded-[var(--radius-lg)] border border-[var(--color-border)]',
-        'bg-[var(--color-surface)] shadow-[var(--shadow-xs)]',
+        'rounded-[var(--radius-lg)]',
+        tone === 'default' && 'border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-xs)]',
+        tone === 'ink' && 'bg-[var(--color-ink)] text-[var(--color-ink-text)] shadow-[var(--shadow-md)]',
+        tone === 'sunken' && 'border border-[var(--color-border)] bg-[var(--color-surface-sunken)]',
         className,
       )}
     >
@@ -24,18 +35,30 @@ export function CardHeader({
   title,
   description,
   action,
+  icon,
 }: {
   title: string;
   description?: string;
   action?: ReactNode;
+  icon?: ReactNode;
 }) {
   return (
     <div className="flex items-start justify-between gap-4 border-b border-[var(--color-border)] px-5 py-4">
-      <div className="min-w-0">
-        <h2 className="text-[0.9375rem] font-semibold">{title}</h2>
-        {description ? (
-          <p className="mt-0.5 text-[0.8125rem] text-[var(--color-text-muted)]">{description}</p>
+      <div className="flex min-w-0 items-start gap-3">
+        {icon ? (
+          <span
+            aria-hidden
+            className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-surface-sunken)] text-[var(--color-text-muted)]"
+          >
+            {icon}
+          </span>
         ) : null}
+        <div className="min-w-0">
+          <h2 className="text-[0.9375rem] font-semibold">{title}</h2>
+          {description ? (
+            <p className="mt-0.5 text-[0.8125rem] text-[var(--color-text-muted)]">{description}</p>
+          ) : null}
+        </div>
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
     </div>
@@ -61,24 +84,37 @@ const BADGE_TONES: Record<BadgeTone, string> = {
   info: 'bg-[var(--color-info-subtle)] text-[var(--color-info)]',
 };
 
+const DOT_TONES: Record<BadgeTone, string> = {
+  neutral: 'bg-[var(--color-text-subtle)]',
+  brand: 'bg-[var(--color-brand)]',
+  success: 'bg-[var(--color-success)]',
+  warning: 'bg-[var(--color-warning)]',
+  danger: 'bg-[var(--color-danger)]',
+  info: 'bg-[var(--color-info)]',
+};
+
 export function Badge({
   tone = 'neutral',
   children,
   className,
+  dot = false,
 }: {
   tone?: BadgeTone;
   children: ReactNode;
   className?: string;
+  /** Ponto colorido antes do texto -- o status nunca depende so da cor do fundo. */
+  dot?: boolean;
 }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-[var(--radius-xs)] px-2 py-0.5',
+        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5',
         'text-[0.75rem] font-medium whitespace-nowrap',
         BADGE_TONES[tone],
         className,
       )}
     >
+      {dot ? <span aria-hidden className={cn('size-1.5 shrink-0 rounded-full', DOT_TONES[tone])} /> : null}
       {children}
     </span>
   );
@@ -119,18 +155,25 @@ export function EmptyState({
   title,
   description,
   action,
+  compact = false,
 }: {
   icon?: ReactNode;
   title: string;
   description?: string;
   action?: ReactNode;
+  compact?: boolean;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
+    <div
+      className={cn(
+        'flex flex-col items-center justify-center px-6 text-center',
+        compact ? 'py-8' : 'py-14',
+      )}
+    >
       {icon ? (
         <div
           aria-hidden
-          className="mb-4 flex size-11 items-center justify-center rounded-full bg-[var(--color-surface-sunken)] text-[var(--color-text-subtle)]"
+          className="mb-4 flex size-12 items-center justify-center rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-sunken)] text-[var(--color-text-subtle)]"
         >
           {icon}
         </div>
@@ -180,19 +223,28 @@ export function Avatar({
   name,
   src,
   size = 'md',
+  className,
 }: {
   name: string;
   src?: string | null;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
+  className?: string;
 }) {
-  const dimension = size === 'sm' ? 'size-7 text-[0.6875rem]' : size === 'lg' ? 'size-11 text-sm' : 'size-9 text-xs';
+  const dimension =
+    size === 'sm'
+      ? 'size-8 text-[0.6875rem]'
+      : size === 'lg'
+        ? 'size-12 text-sm'
+        : size === 'xl'
+          ? 'size-16 text-lg'
+          : 'size-10 text-xs';
 
   if (src) {
     return (
       <img
         src={src}
         alt=""
-        className={cn(dimension, 'rounded-full object-cover')}
+        className={cn(dimension, 'shrink-0 rounded-full object-cover', className)}
         loading="lazy"
       />
     );
@@ -203,8 +255,9 @@ export function Avatar({
       aria-hidden
       className={cn(
         dimension,
-        'inline-flex items-center justify-center rounded-full font-semibold',
+        'inline-flex shrink-0 items-center justify-center rounded-full font-semibold',
         'bg-[var(--color-brand-subtle)] text-[var(--color-brand-text)]',
+        className,
       )}
     >
       {initials(name)}
@@ -220,20 +273,77 @@ export function PageHeader({
   title,
   description,
   action,
+  eyebrow,
 }: {
   title: string;
   description?: string;
   action?: ReactNode;
+  eyebrow?: string;
 }) {
   return (
-    <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <header className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
-        <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
+        {eyebrow ? (
+          <p className="eyebrow mb-1.5 text-[var(--color-text-subtle)]">{eyebrow}</p>
+        ) : null}
+        <h1 className="text-2xl font-semibold tracking-tight text-balance sm:text-[1.75rem]">{title}</h1>
         {description ? (
-          <p className="mt-1 text-sm text-[var(--color-text-muted)]">{description}</p>
+          <p className="mt-1 text-sm text-[var(--color-text-muted)] sm:text-[0.9375rem]">{description}</p>
         ) : null}
       </div>
-      {action ? <div className="shrink-0">{action}</div> : null}
+      {action ? <div className="flex shrink-0 flex-wrap gap-2">{action}</div> : null}
     </header>
+  );
+}
+
+/* ---------------------------------------------------------------------------
+   Titulo de secao dentro de uma pagina
+--------------------------------------------------------------------------- */
+
+export function SectionTitle({
+  children,
+  action,
+  className,
+}: {
+  children: ReactNode;
+  action?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn('mb-3 flex items-center justify-between gap-3', className)}>
+      <h2 className="eyebrow text-[var(--color-text-muted)]">{children}</h2>
+      {action}
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------------
+   Par rotulo/valor -- fichas de cliente, pet e cobranca
+--------------------------------------------------------------------------- */
+
+export function InfoItem({
+  label,
+  value,
+  muted = false,
+  className,
+}: {
+  label: string;
+  value: ReactNode;
+  /** Valor ausente ("Nao informado") fica em tom secundario. */
+  muted?: boolean;
+  className?: string;
+}) {
+  return (
+    <div className={cn('min-w-0', className)}>
+      <dt className="text-[0.75rem] text-[var(--color-text-subtle)]">{label}</dt>
+      <dd
+        className={cn(
+          'mt-0.5 text-sm font-medium break-words',
+          muted && 'font-normal text-[var(--color-text-subtle)]',
+        )}
+      >
+        {value}
+      </dd>
+    </div>
   );
 }

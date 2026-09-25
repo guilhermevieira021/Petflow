@@ -53,7 +53,7 @@ export function AppointmentStatusActions({ appointment }: { appointment: Appoint
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       {primaryNext ? (
-        <Button size="sm" loading={mutation.isPending} onClick={() => mutation.mutate({ status: primaryNext })}>
+        <Button size="sm" className="max-sm:h-9 max-sm:px-3.5" loading={mutation.isPending} onClick={() => mutation.mutate({ status: primaryNext })}>
           {primaryNext === 'CONFIRMED' && 'Confirmar'}
           {primaryNext === 'IN_PROGRESS' && 'Iniciar'}
           {primaryNext === 'COMPLETED' && 'Concluir'}
@@ -64,6 +64,7 @@ export function AppointmentStatusActions({ appointment }: { appointment: Appoint
         <Button
           size="sm"
           variant="secondary"
+          className="max-sm:h-9"
           loading={mutation.isPending}
           onClick={() => mutation.mutate({ status: 'NO_SHOW' })}
         >
@@ -72,7 +73,7 @@ export function AppointmentStatusActions({ appointment }: { appointment: Appoint
       ) : null}
 
       {canCancelOrNoShow && can(Permission.APPOINTMENTS_CANCEL) ? (
-        <Button size="sm" variant="ghost" onClick={() => setConfirmCancel(true)}>
+        <Button size="sm" variant="ghost" className="max-sm:h-9" onClick={() => setConfirmCancel(true)}>
           Cancelar
         </Button>
       ) : null}

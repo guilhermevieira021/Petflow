@@ -1,12 +1,19 @@
-import { PawPrint } from 'lucide-react';
+import { CalendarCheck2, TrendingDown, Users } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
+import { Logo } from '@/components/brand/Logo';
+
+const BENEFITS = [
+  { icon: CalendarCheck2, text: 'Agenda do dia organizada, sem conflito de horário.' },
+  { icon: Users, text: 'Clientes e pets com histórico completo, a um toque.' },
+  { icon: TrendingDown, text: 'Veja o que entrou e o que foi perdido na operação.' },
+];
 
 /**
  * Moldura das telas publicas (login, cadastro, recuperacao).
  *
- * Duas colunas no desktop, uma no mobile. A coluna da direita carrega a
- * promessa comercial do produto -- e o primeiro contato de um dono de pet shop
- * com o sistema, e ele precisa entender em cinco segundos para que serve.
+ * Desktop: painel escuro com a promessa do produto + formulario. Mobile: so o
+ * formulario, sem nada empurrando os campos para baixo da dobra.
  */
 export function AuthShell({
   title,
@@ -20,45 +27,53 @@ export function AuthShell({
   footer?: ReactNode;
 }) {
   return (
-    <div className="grid min-h-dvh lg:grid-cols-[1fr_minmax(0,32rem)]">
-      {/* Painel de marca: escondido no mobile para nao empurrar o formulario
-          para baixo da dobra. */}
-      <aside className="relative hidden flex-col justify-between bg-[var(--color-brand)] p-10 text-[var(--color-text-inverse)] lg:flex">
-        <div className="flex items-center gap-2.5">
-          <PawPrint aria-hidden className="size-6" />
-          <span className="text-lg font-semibold tracking-tight">PetFlow</span>
+    <div className="grid min-h-dvh bg-[var(--color-surface)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
+      <aside className="relative hidden overflow-hidden bg-[var(--color-ink)] p-12 text-[var(--color-ink-text)] lg:flex lg:flex-col lg:justify-between">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -bottom-40 -left-32 size-[34rem] rounded-full bg-[var(--color-brand)] opacity-20 blur-3xl"
+        />
+        <Link to="/" className="relative w-fit">
+          <Logo tone="light" />
+        </Link>
+
+        <div className="relative max-w-md">
+          <p className="text-[2rem] leading-[1.15] font-semibold tracking-tight text-balance">
+            Mais tempo para atender. Menos dinheiro perdido na operação.
+          </p>
+          <ul className="mt-8 flex flex-col gap-4">
+            {BENEFITS.map((benefit) => (
+              <li key={benefit.text} className="flex items-start gap-3 text-[0.9375rem] text-[var(--color-ink-muted)]">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-white/[0.07] text-[var(--color-brand-on-ink)]">
+                  <benefit.icon aria-hidden className="size-4" />
+                </span>
+                <span className="pt-1">{benefit.text}</span>
+              </li>
+            ))}
+          </ul>
         </div>
 
-        <div className="max-w-md">
-          <p className="text-2xl leading-snug font-semibold tracking-tight">
-            Organize os atendimentos do seu pet shop e faca seus clientes voltarem.
-          </p>
-          <p className="mt-4 text-[0.9375rem] leading-relaxed text-white/80">
-            Agenda, ficha dos pets, historico de atendimentos e lembretes de retorno. Tudo em um
-            lugar so, do jeito que o balcao precisa.
-          </p>
-        </div>
-
-        <p className="text-[0.8125rem] text-white/60">
+        <p className="relative text-[0.8125rem] text-[var(--color-ink-muted)]">
           Seus dados ficam isolados dos demais pet shops da plataforma.
         </p>
       </aside>
 
-      <main className="flex items-center justify-center bg-[var(--color-surface)] px-5 py-10 sm:px-10">
-        <div className="w-full max-w-sm">
-          <div className="mb-8 flex items-center gap-2 lg:hidden">
-            <PawPrint aria-hidden className="size-5 text-[var(--color-brand)]" />
-            <span className="font-semibold tracking-tight">PetFlow</span>
+      <main className="flex flex-col px-5 py-8 sm:px-10">
+        <div className="lg:hidden">
+          <Link to="/" className="inline-flex">
+            <Logo />
+          </Link>
+        </div>
+
+        <div className="flex flex-1 items-center justify-center py-10">
+          <div className="w-full max-w-[25rem]">
+            <h1 className="text-[1.75rem] leading-tight font-semibold tracking-tight">{title}</h1>
+            {subtitle ? <p className="mt-2 text-[0.9375rem] text-[var(--color-text-muted)]">{subtitle}</p> : null}
+
+            <div className="mt-8">{children}</div>
+
+            {footer ? <div className="mt-8 border-t border-[var(--color-border)] pt-6 text-sm">{footer}</div> : null}
           </div>
-
-          <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
-          {subtitle ? (
-            <p className="mt-1.5 text-sm text-[var(--color-text-muted)]">{subtitle}</p>
-          ) : null}
-
-          <div className="mt-7">{children}</div>
-
-          {footer ? <div className="mt-6 text-sm">{footer}</div> : null}
         </div>
       </main>
     </div>
@@ -70,7 +85,7 @@ export function FormAlert({ message }: { message: string }) {
   return (
     <div
       role="alert"
-      className="mb-4 rounded-[var(--radius-md)] border border-[var(--color-danger)]/25 bg-[var(--color-danger-subtle)] px-3.5 py-2.5 text-[0.8125rem] text-[var(--color-danger)]"
+      className="mb-1 rounded-[var(--radius-md)] border border-[var(--color-danger-border)] bg-[var(--color-danger-subtle)] px-4 py-3 text-[0.8125rem] font-medium text-[var(--color-danger)]"
     >
       {message}
     </div>

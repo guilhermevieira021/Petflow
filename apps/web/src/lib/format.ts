@@ -143,3 +143,41 @@ export function whatsappLink(phone: string | null | undefined, message?: string)
   const text = message ? `?text=${encodeURIComponent(message)}` : '';
   return `https://wa.me/${withCountry}${text}`;
 }
+
+/**
+ * Data de calendario pura (YYYY-MM-DD, ex.: nascimento). Formatada ao
+ * meio-dia UTC para nunca "voltar um dia" em fusos negativos como o do
+ * Brasil -- `new Date('2020-05-10')` e meia-noite UTC, que ja e dia 09 aqui.
+ */
+export function formatCalendarDate(date: string | null | undefined): string {
+  if (!date) return '--';
+  return formatDate(`${date.slice(0, 10)}T12:00:00Z`, 'UTC');
+}
+
+/** Idade legivel a partir da data de nascimento: "3 anos", "7 meses". */
+export function formatAge(birthDate: string | null | undefined, now: Date = new Date()): string | null {
+  if (!birthDate) return null;
+  const [year, month, day] = birthDate.slice(0, 10).split('-').map(Number);
+  if (!year || !month || !day) return null;
+  let months = (now.getFullYear() - year) * 12 + (now.getMonth() + 1 - month);
+  if (now.getDate() < day) months -= 1;
+  if (months < 0) return null;
+  if (months < 1) return 'Menos de 1 mês';
+  if (months < 12) return `${months} ${months === 1 ? 'mês' : 'meses'}`;
+  const years = Math.floor(months / 12);
+  return `${years} ${years === 1 ? 'ano' : 'anos'}`;
+}
+
+/**
+ * Duracao do teste gratis a partir de `plans.trial_hours` (fonte: API).
+ * 48 -> "48 horas"; 72 -> "3 dias"; 720 -> "30 dias". Multiplos de 24 a
+ * partir de 72h viram dias -- abaixo disso "horas" e mais preciso.
+ */
+export function formatTrialPeriod(hours: number | null | undefined): string | null {
+  if (!hours || hours <= 0) return null;
+  if (hours >= 72 && hours % 24 === 0) {
+    const days = hours / 24;
+    return `${days} dias`;
+  }
+  return `${hours} ${hours === 1 ? 'hora' : 'horas'}`;
+}

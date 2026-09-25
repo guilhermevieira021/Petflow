@@ -36,7 +36,9 @@ function niceCeiling(value: number): number {
 
 function useContainerWidth(): [React.RefObject<HTMLDivElement | null>, number] {
   const ref = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(640);
+  // Comeca pequeno: um valor inicial largo esticaria colunas de grid no mobile
+  // antes da primeira medicao.
+  const [width, setWidth] = useState(280);
 
   useEffect(() => {
     const element = ref.current;
@@ -106,7 +108,7 @@ export function RevenueChart({ data }: { data: DashboardRevenuePoint[] }) {
         ))}
       </div>
 
-      <div ref={containerRef} className="relative w-full">
+      <div ref={containerRef} className="relative w-full min-w-0 overflow-hidden">
         <svg
           width={width}
           height={HEIGHT}

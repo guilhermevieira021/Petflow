@@ -39,16 +39,16 @@ export function LoginPage() {
 
   return (
     <AuthShell
-      title="Entrar na sua conta"
-      subtitle="Acesse a agenda e os clientes do seu pet shop."
+      title="Bem-vindo de volta"
+      subtitle="Entre para ver a agenda e os resultados do seu pet shop."
       footer={
         <p className="text-[var(--color-text-muted)]">
-          Ainda nao tem conta?{' '}
+          Ainda não usa o Petflow?{' '}
           <Link
             to="/criar-conta"
             className="font-medium text-[var(--color-brand-text)] underline-offset-4 hover:underline"
           >
-            Cadastre seu pet shop
+            Comece seu teste grátis
           </Link>
         </p>
       }
@@ -57,7 +57,7 @@ export function LoginPage() {
         {formError ? <FormAlert message={formError} /> : null}
 
         <TextField
-          label="Email"
+          label="E-mail"
           name="email"
           type="email"
           autoComplete="email"

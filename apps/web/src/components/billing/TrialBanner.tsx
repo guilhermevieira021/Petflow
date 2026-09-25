@@ -45,7 +45,7 @@ export function TrialBanner({ billing }: { billing: BillingStatusDto }) {
           Ha um problema com o pagamento do seu plano. Atualize para continuar sem interrupcoes.
         </p>
         <Link
-          to="/configuracoes/plano"
+          to="/billing"
           className="shrink-0 rounded-[var(--radius-md)] border border-[var(--color-warning)]/40 px-3 py-1.5 text-[0.8125rem] font-medium hover:bg-[var(--color-warning)]/10"
         >
           Ver cobranca

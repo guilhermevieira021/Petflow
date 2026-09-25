@@ -10,12 +10,14 @@ import {
 import { cn } from '@/lib/cn';
 
 const CONTROL_BASE = cn(
-  'w-full rounded-[var(--radius-md)] border bg-[var(--color-surface)] px-3',
+  'w-full rounded-[var(--radius-md)] border bg-[var(--color-surface)] px-3.5',
   // text-base (16px) no mobile: abaixo disso o iOS Safari da zoom automatico
   // ao focar o campo, e o zoom fica preso -- sm: volta para o tamanho normal
   // no desktop, onde isso nao acontece. So a fonte muda, nada mais no visual.
   'text-base sm:text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-subtle)]',
-  'transition-colors duration-150',
+  'shadow-[var(--shadow-xs)] transition-[border-color,box-shadow] duration-150',
+  'hover:border-[var(--color-text-subtle)]',
+  'focus-visible:border-[var(--color-brand)] focus-visible:shadow-[0_0_0_3px_var(--color-brand-subtle)] focus-visible:outline-none',
   'disabled:cursor-not-allowed disabled:bg-[var(--color-surface-sunken)] disabled:text-[var(--color-text-subtle)]',
 );
 
@@ -96,7 +98,7 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function T
         aria-describedby={describedBy(id, error, hint)}
         className={cn(
           CONTROL_BASE,
-          'h-9.5',
+          'h-11 sm:h-10',
           error ? 'border-[var(--color-danger)]' : 'border-[var(--color-border-strong)]',
           className,
         )}
@@ -163,7 +165,7 @@ export const SelectField = forwardRef<HTMLSelectElement, SelectFieldProps>(funct
         aria-describedby={describedBy(id, error, hint)}
         className={cn(
           CONTROL_BASE,
-          'h-9.5 appearance-none bg-no-repeat pr-9',
+          'h-11 sm:h-10 appearance-none bg-no-repeat pr-9',
           error ? 'border-[var(--color-danger)]' : 'border-[var(--color-border-strong)]',
           className,
         )}

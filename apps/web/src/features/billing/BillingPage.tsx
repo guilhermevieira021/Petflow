@@ -3,6 +3,7 @@ import {
   LimitKey,
   SUBSCRIPTION_STATUS_LABELS,
   type BillingStatusDto,
+  type PlanDto,
 } from '@petflow/contracts';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, Clock, Loader2, ShieldAlert, XCircle } from 'lucide-react';
@@ -162,6 +163,11 @@ export function BillingPage() {
     return () => window.clearTimeout(timeout);
   }, [confirming]);
 
+  const plansQuery = useQuery({
+    queryKey: ['plans'],
+    queryFn: () => api.get<{ data: PlanDto[] }>('/plans'),
+  });
+
   async function handleSubscribe(): Promise<void> {
     setCheckoutLoading(true);
     try {
@@ -186,9 +192,12 @@ export function BillingPage() {
     }
   }
 
+  const proPlan = plansQuery.data?.data.find((plan) => plan.code === 'PRO');
+  const showUpgrade = query.data ? query.data.plan.code === 'TRIAL' || query.data.subscription.status !== 'ACTIVE' : false;
+
   return (
     <>
-      <PageHeader title="Plano e cobranca" description="Acompanhe seu plano, uso e status de pagamento." />
+      <PageHeader title="Plano e cobrança" description="Acompanhe seu plano, o uso e o status de pagamento." />
 
       {confirming && query.data?.subscription.status !== 'ACTIVE' ? (
         <div
@@ -205,7 +214,7 @@ export function BillingPage() {
       {query.isLoading ? (
         <Card>
           <CardBody className="flex flex-col gap-4" aria-busy="true">
-            <span className="sr-only">Carregando cobranca</span>
+            <span className="sr-only">Carregando cobrança</span>
             <Skeleton className="h-16 w-full" />
             <Skeleton className="h-40 w-full" />
           </CardBody>
@@ -222,55 +231,67 @@ export function BillingPage() {
       ) : null}
 
       {query.data ? (
-        <div className="flex flex-col gap-4">
-          <Card>
-            <CardHeader
-              title={`Plano ${query.data.plan.name}`}
-              action={
-                <Badge tone={STATUS_TONES[query.data.subscription.status]}>
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
+          <div className="flex min-w-0 flex-col gap-4">
+            <Card className="overflow-hidden">
+              <div className="flex flex-wrap items-start justify-between gap-4 p-5 sm:p-6">
+                <div>
+                  <p className="eyebrow text-[var(--color-text-subtle)]">Seu plano</p>
+                  <h2 className="mt-1 text-2xl font-semibold tracking-tight">{query.data.plan.name}</h2>
+                  {query.data.plan.priceCents > 0 ? (
+                    <p className="tabular mt-1 text-sm text-[var(--color-text-muted)]">
+                      {formatMoney(query.data.plan.priceCents / 100)}
+                      {query.data.plan.billingPeriod === 'MONTHLY' ? ' por mês' : ''}
+                    </p>
+                  ) : null}
+                </div>
+                <Badge dot tone={STATUS_TONES[query.data.subscription.status]}>
                   {SUBSCRIPTION_STATUS_LABELS[query.data.subscription.status]}
                 </Badge>
-              }
-            />
-            <CardBody className="flex flex-col gap-4">
-              <StatusPanel billing={query.data} />
+              </div>
+              <div className="border-t border-[var(--color-border)] p-5 sm:p-6">
+                <StatusPanel billing={query.data} />
+              </div>
+            </Card>
 
-              {query.data.plan.code === 'TRIAL' || query.data.subscription.status !== 'ACTIVE' ? (
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--color-border)] p-4">
-                  <div>
-                    <p className="text-[0.875rem] font-medium">Assine o plano PRO</p>
-                    <p className="text-[0.8125rem] text-[var(--color-text-muted)]">
-                      Limites ampliados, relatorios avancados e automacao de mensagens.
-                    </p>
-                  </div>
-                  <Button loading={checkoutLoading} onClick={handleSubscribe}>
-                    Assinar PRO
-                  </Button>
-                </div>
-              ) : null}
-            </CardBody>
-          </Card>
-
-          <Card>
-            <CardHeader title="Uso do plano" description="Atualizado em tempo real conforme voce usa o sistema." />
-            <CardBody className="grid gap-5 sm:grid-cols-2">
-              {LIMIT_ROWS.map((key) => (
-                <UsageIndicator key={key} label={LIMIT_KEY_LABELS[key]} entry={query.data!.usage[key]} />
-              ))}
-            </CardBody>
-          </Card>
-
-          {query.data.plan.priceCents > 0 ? (
             <Card>
-              <CardHeader title="Valor" />
-              <CardBody>
-                <p className="text-2xl font-semibold tracking-tight">
-                  {formatMoney(query.data.plan.priceCents / 100)}
-                  {query.data.plan.billingPeriod === 'MONTHLY' ? (
-                    <span className="ml-1 text-sm font-normal text-[var(--color-text-muted)]">/mes</span>
-                  ) : null}
-                </p>
+              <CardHeader title="Uso do plano" description="Atualizado em tempo real conforme você usa o sistema." />
+              <CardBody className="grid gap-5 sm:grid-cols-2">
+                {LIMIT_ROWS.map((key) => (
+                  <UsageIndicator key={key} label={LIMIT_KEY_LABELS[key]} entry={query.data!.usage[key]} />
+                ))}
               </CardBody>
+            </Card>
+          </div>
+
+          {showUpgrade ? (
+            <Card tone="ink" className="relative h-fit overflow-hidden p-6">
+              <div
+                aria-hidden
+                className="pointer-events-none absolute -top-20 -right-20 size-56 rounded-full bg-[var(--color-brand)] opacity-25 blur-3xl"
+              />
+              <div className="relative">
+                <p className="eyebrow text-[var(--color-brand-on-ink)]">{proPlan?.name ?? 'Plano PRO'}</p>
+                {proPlan ? (
+                  <p className="tabular mt-2 text-3xl font-semibold tracking-tight">
+                    {formatMoney(proPlan.priceCents / 100)}
+                    {proPlan.billingPeriod === 'MONTHLY' ? (
+                      <span className="ml-1 text-sm font-normal text-[var(--color-ink-muted)]">/mês</span>
+                    ) : null}
+                  </p>
+                ) : (
+                  <Skeleton className="mt-3 h-8 w-32 opacity-20" />
+                )}
+                <p className="mt-3 text-[0.875rem] leading-relaxed text-[var(--color-ink-muted)]">
+                  Limites ampliados, relatórios avançados e automação de mensagens.
+                </p>
+                <Button size="lg" className="mt-6 w-full" loading={checkoutLoading} onClick={handleSubscribe}>
+                  Assinar PRO
+                </Button>
+                <p className="mt-3 text-center text-[0.75rem] text-[var(--color-ink-muted)]">
+                  Seus dados continuam salvos em qualquer plano.
+                </p>
+              </div>
             </Card>
           ) : null}
         </div>
