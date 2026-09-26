@@ -69,6 +69,8 @@ export interface DashboardOverview {
   };
   /** Atendimentos concluidos sem proximo agendamento marcado. */
   pendingReturns: number;
+  /** Vacinas/vermifugos/medicamentos: vencidos e vencendo em 30 dias (registro mais recente de cada item). */
+  healthDue: { overdue: number; dueSoon: number };
   upcoming: DashboardUpcomingAppointment[];
   /** Serie dos ultimos 14 dias para o grafico de receita. */
   revenueSeries: DashboardRevenuePoint[];

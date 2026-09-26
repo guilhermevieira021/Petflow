@@ -1,4 +1,5 @@
 import {
+  type WhatsappStatusDto,
   BRAZIL_TIMEZONES,
   isTimezone,
   Permission,
@@ -18,10 +19,11 @@ import { formatPhone } from '@/lib/format';
 
 const TENANT_QUERY_KEY = ['tenant', 'current'] as const;
 
-type TabKey = 'empresa' | 'whatsapp' | 'automacao' | 'aparencia';
+type TabKey = 'empresa' | 'agendamento' | 'whatsapp' | 'automacao' | 'aparencia';
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'empresa', label: 'Empresa' },
+  { key: 'agendamento', label: 'Agendamento' },
   { key: 'whatsapp', label: 'WhatsApp' },
   { key: 'automacao', label: 'Automacao' },
   { key: 'aparencia', label: 'Aparencia' },
@@ -243,10 +245,174 @@ function AutomationSection({ tenant, readOnly }: { tenant: Tenant; readOnly: boo
 }
 
 /* ---------------------------------------------------------------------------
+   Agendamento online
+--------------------------------------------------------------------------- */
+
+const WEEKDAY_OPTIONS = [
+  { value: 1, label: 'Seg' },
+  { value: 2, label: 'Ter' },
+  { value: 3, label: 'Qua' },
+  { value: 4, label: 'Qui' },
+  { value: 5, label: 'Sex' },
+  { value: 6, label: 'Sáb' },
+  { value: 0, label: 'Dom' },
+];
+
+function BookingSection({ tenant, readOnly }: { tenant: Tenant; readOnly: boolean }) {
+  const mutation = useUpdateTenant();
+  const toast = useToast();
+  const { businessHours, publicBooking } = tenant.settings;
+  const link = `${window.location.origin}/agendar/${tenant.slug}`;
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>): void {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    mutation.mutate({
+      settings: {
+        businessHours: {
+          start: String(data.get('start')),
+          end: String(data.get('end')),
+          weekdays: data.getAll('weekdays').map(Number),
+        },
+        publicBooking: {
+          enabled: data.get('enabled') === 'on',
+          minLeadHours: Number(data.get('minLeadHours')),
+          maxDaysAhead: Number(data.get('maxDaysAhead')),
+          slotIntervalMinutes: Number(data.get('slotIntervalMinutes')),
+        },
+      },
+    });
+  }
+
+  async function copyLink(): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(link);
+      toast.success('Link copiado.');
+    } catch {
+      toast.error('Não foi possível copiar. Selecione o link e copie manualmente.');
+    }
+  }
+
+  const apiError = mutation.error instanceof ApiError ? mutation.error : null;
+
+  return (
+    <Card>
+      <CardHeader
+        title="Agendamento online"
+        description="Um link para o tutor pedir horário sozinho. Cada pedido chega como solicitação na agenda e só vira agendamento quando você aceita."
+      />
+      <CardBody>
+        <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+          <label className="flex items-start gap-3 rounded-[var(--radius-md)] border border-[var(--color-border)] p-3.5">
+            <input
+              type="checkbox"
+              name="enabled"
+              defaultChecked={publicBooking.enabled}
+              disabled={readOnly}
+              className="mt-0.5 size-4 shrink-0 accent-[var(--color-brand)]"
+            />
+            <span>
+              <span className="block text-sm font-medium">Receber pedidos pelo link</span>
+              <span className="mt-0.5 block text-[0.8125rem] text-[var(--color-text-muted)]">
+                Desligado, o link responde como página inexistente. O tutor só vê o nome do pet shop,
+                os serviços ativos e os horários livres.
+              </span>
+            </span>
+          </label>
+
+          {publicBooking.enabled ? (
+            <div className="flex flex-wrap items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-surface-sunken)] p-3">
+              <code className="min-w-0 flex-1 truncate text-[0.8125rem]">{link}</code>
+              <Button size="sm" variant="secondary" onClick={() => void copyLink()}>
+                Copiar link
+              </Button>
+              <a
+                href={`/agendar/${tenant.slug}`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[0.8125rem] font-medium text-[var(--color-brand-text)] hover:underline"
+              >
+                Abrir
+              </a>
+            </div>
+          ) : null}
+
+          <fieldset className="flex flex-col gap-2" disabled={readOnly}>
+            <legend className="mb-1 text-sm font-medium">Dias de atendimento</legend>
+            <div className="flex flex-wrap gap-2">
+              {WEEKDAY_OPTIONS.map((day) => (
+                <label
+                  key={day.value}
+                  className="flex cursor-pointer items-center gap-1.5 rounded-full border border-[var(--color-border)] px-3 py-1.5 text-[0.8125rem] has-[:checked]:border-[var(--color-brand)] has-[:checked]:bg-[var(--color-brand-subtle)] has-[:checked]:text-[var(--color-brand-text)]"
+                >
+                  <input
+                    type="checkbox"
+                    name="weekdays"
+                    value={day.value}
+                    defaultChecked={businessHours.weekdays.includes(day.value)}
+                    className="sr-only"
+                  />
+                  {day.label}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TextField label="Abre às" name="start" type="time" defaultValue={businessHours.start} disabled={readOnly} error={apiError?.fieldError('settings.businessHours.start')} />
+            <TextField label="Fecha às" name="end" type="time" defaultValue={businessHours.end} disabled={readOnly} error={apiError?.fieldError('settings.businessHours.end')} />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <SelectField
+              label="Antecedência mínima"
+              name="minLeadHours"
+              defaultValue={String(publicBooking.minLeadHours)}
+              disabled={readOnly}
+              options={[0, 1, 2, 4, 12, 24, 48].map((hours) => ({
+                value: String(hours),
+                label: hours === 0 ? 'Sem mínimo' : `${hours} ${hours === 1 ? 'hora' : 'horas'}`,
+              }))}
+            />
+            <SelectField
+              label="Agenda aberta por"
+              name="maxDaysAhead"
+              defaultValue={String(publicBooking.maxDaysAhead)}
+              disabled={readOnly}
+              options={[7, 14, 30, 60, 90].map((days) => ({ value: String(days), label: `${days} dias` }))}
+            />
+            <SelectField
+              label="Horários a cada"
+              name="slotIntervalMinutes"
+              defaultValue={String(publicBooking.slotIntervalMinutes)}
+              disabled={readOnly}
+              options={[15, 30, 60].map((minutes) => ({ value: String(minutes), label: `${minutes} minutos` }))}
+            />
+          </div>
+
+          {!readOnly ? (
+            <div className="flex justify-end">
+              <Button type="submit" loading={mutation.isPending}>
+                Salvar alteracoes
+              </Button>
+            </div>
+          ) : null}
+        </form>
+      </CardBody>
+    </Card>
+  );
+}
+
+/* ---------------------------------------------------------------------------
    WhatsApp
 --------------------------------------------------------------------------- */
 
 function WhatsAppSection({ tenant }: { tenant: Tenant }) {
+  // Status REAL do servidor -- nunca um texto fixo dizendo que esta conectado.
+  const status = useQuery({
+    queryKey: ['messages', 'whatsapp-status'],
+    queryFn: () => api.get<WhatsappStatusDto>('/messages/whatsapp/status'),
+  });
   return (
     <Card>
       <CardHeader title="WhatsApp" description="Como as mensagens do sistema chegam aos seus clientes." />
@@ -258,11 +424,19 @@ function WhatsAppSection({ tenant }: { tenant: Tenant }) {
           </p>
         </div>
 
-        <div className="rounded-[var(--radius-md)] border border-[var(--color-info)]/25 bg-[var(--color-info-subtle)] p-3.5 text-[0.8125rem] text-[var(--color-info)]">
-          Nenhuma API oficial do WhatsApp esta conectada nesta instalacao. As mensagens de Recuperacao
-          e do perfil do cliente abrem o WhatsApp com o texto ja pronto, e voce confirma o envio
-          manualmente -- nada sai sozinho do sistema.
-        </div>
+        {status.data ? (
+          <div
+            role="status"
+            className={
+              status.data.connected
+                ? 'rounded-[var(--radius-md)] border border-[var(--color-success)]/25 bg-[var(--color-success-subtle)] p-3.5 text-[0.8125rem] text-[var(--color-success)]'
+                : 'rounded-[var(--radius-md)] border border-[var(--color-warning)]/25 bg-[var(--color-warning-subtle)] p-3.5 text-[0.8125rem] text-[var(--color-warning)]'
+            }
+          >
+            <strong className="font-semibold">{status.data.connected ? 'Conectado. ' : 'Não conectado. '}</strong>
+            {status.data.message}
+          </div>
+        ) : null}
       </CardBody>
     </Card>
   );
@@ -379,8 +553,8 @@ export function SettingsPage() {
             onClick={() => setTab(item.key)}
             className={
               tab === item.key
-                ? 'border-b-2 border-[var(--color-brand)] px-3.5 py-2.5 text-sm font-medium text-[var(--color-brand-text)]'
-                : 'border-b-2 border-transparent px-3.5 py-2.5 text-sm font-medium text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text)]'
+                ? 'shrink-0 whitespace-nowrap border-b-2 border-[var(--color-brand)] px-3.5 py-2.5 text-sm font-medium text-[var(--color-brand-text)]'
+                : 'shrink-0 whitespace-nowrap border-b-2 border-transparent px-3.5 py-2.5 text-sm font-medium text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text)]'
             }
           >
             {item.label}
@@ -405,6 +579,7 @@ export function SettingsPage() {
         ) : query.data ? (
           <>
             {tab === 'empresa' ? <CompanySection tenant={query.data} readOnly={readOnly} /> : null}
+            {tab === 'agendamento' ? <BookingSection tenant={query.data} readOnly={readOnly} /> : null}
             {tab === 'whatsapp' ? <WhatsAppSection tenant={query.data} /> : null}
             {tab === 'automacao' ? (
               <AutomationSection tenant={query.data} readOnly={readOnly} />

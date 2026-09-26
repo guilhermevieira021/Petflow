@@ -19,6 +19,8 @@ import { BusinessRuleError, ConflictError, NotFoundError } from '../../core/erro
 import { toCount, toIsoRequired, toMoneyLiteral, toNumber } from '../../core/serialization.js';
 import type { Transaction } from '../../db/client.js';
 import { acquireTransactionLock, type TenantContext } from '../../db/context.js';
+import { getWhatsappProvider } from '../../integrations/whatsapp/whatsapp.provider.js';
+import { enqueueAppointmentMessage } from '../messages/whatsapp.service.js';
 import { appointments, customers, pets, services, users } from '../../db/schema/index.js';
 import { assertActiveAccess, assertWithinLimit } from '../billing/billing.service.js';
 import { recordAudit } from '../audit/audit.service.js';
@@ -407,6 +409,19 @@ export async function changeAppointmentStatus(
     entityId: appointmentId,
     metadata: { from: current.status, to: input.status, reason: input.reason ?? null },
   });
+
+  // Mensagem automatica (somente com automationEnabled + template ativo).
+  // Aqui ela e apenas REGISTRADA; o envio real, se houver API conectada,
+  // acontece apos o commit (dispatchQueuedForAppointment na rota).
+  if (input.status === 'CONFIRMED' || input.status === 'CANCELLED') {
+    await enqueueAppointmentMessage(
+      tx,
+      context,
+      appointmentId,
+      input.status === 'CONFIRMED' ? 'APPOINTMENT_CONFIRMATION' : 'APPOINTMENT_CANCELLATION',
+      getWhatsappProvider(),
+    );
+  }
 
   const [row] = await tx.select().from(appointments).where(eq(appointments.id, appointmentId)).limit(1);
   if (!row) throw new NotFoundError('Agendamento');

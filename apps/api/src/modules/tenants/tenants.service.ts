@@ -22,7 +22,7 @@ import { recordAudit } from '../audit/audit.service.js';
  * Preenche lacunas de configuracoes vindas do banco com os padroes atuais.
  * Assim, adicionar uma chave nova em TenantSettings nao quebra tenants antigos.
  */
-function normalizeSettings(raw: TenantSettings | null): TenantSettings {
+export function normalizeSettings(raw: TenantSettings | null): TenantSettings {
   const parsed = tenantSettingsSchema.safeParse({ ...DEFAULT_TENANT_SETTINGS, ...(raw ?? {}) });
   return parsed.success ? parsed.data : DEFAULT_TENANT_SETTINGS;
 }

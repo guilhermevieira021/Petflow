@@ -84,6 +84,22 @@ export const tenantSettingsSchema = z
         weekdays: z.array(z.number().int().min(0).max(6)).default([1, 2, 3, 4, 5, 6]),
       })
       .default({ start: '08:00', end: '18:00', weekdays: [1, 2, 3, 4, 5, 6] }),
+    /**
+     * Link publico de agendamento (/agendar/<slug>). Desligado por padrao: o
+     * pet shop decide expor. A funcao SQL public_booking_tenant() le
+     * exatamente `publicBooking.enabled`.
+     */
+    publicBooking: z
+      .object({
+        enabled: z.boolean().default(false),
+        /** Antecedencia minima, em horas, para uma solicitacao. */
+        minLeadHours: z.number().int().min(0).max(168).default(2),
+        /** Ate quantos dias a frente o tutor pode escolher. */
+        maxDaysAhead: z.number().int().min(1).max(90).default(30),
+        /** Intervalo entre horarios oferecidos, em minutos. */
+        slotIntervalMinutes: z.number().int().min(10).max(240).default(30),
+      })
+      .default({ enabled: false, minLeadHours: 2, maxDaysAhead: 30, slotIntervalMinutes: 30 }),
   })
   .strict();
 export type TenantSettings = z.infer<typeof tenantSettingsSchema>;

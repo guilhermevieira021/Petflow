@@ -63,7 +63,7 @@ Se o GUC nao for definido, `app_current_tenant()` devolve `NULL`, a comparacao
 `tenant_id = NULL` nao casa com nada e a consulta retorna zero linhas. **Falha
 fechado, nunca aberto.**
 
-### As tres portas de acesso ao banco
+### As portas de acesso ao banco
 
 Nao existe handle de banco exportado. Todo acesso passa por uma destas funcoes
 (`src/db/context.ts`):
@@ -73,6 +73,7 @@ Nao existe handle de banco exportado. Todo acesso passa por uma destas funcoes
 | `withTenant(id, fn)` | `petflow_app` | So o tenant informado | Todo o resto do sistema |
 | `withBootstrap(fn)` | `petflow_bootstrap` | `users`, `sessions`, `password_reset_tokens` de todos os tenants -- **nenhum dado de negocio** | Somente `src/modules/auth` |
 | `withSystem(fn)` | conexao crua, sem RLS | Tudo | Cadastro publico, migrations, seed, webhook de billing (Cakto), catalogo publico de planos |
+| `withPublicBookingTenant(slug, fn)` | `petflow_app` | So o tenant do slug, e so se ele ligou o agendamento online | Somente `src/modules/booking` (link publico `/agendar/:slug`) |
 
 `withBootstrap` existe porque o login recebe apenas um email e precisa descobrir a
 qual tenant ele pertence -- um problema de ovo e galinha real. A resposta nao foi
@@ -82,6 +83,12 @@ agenda. Isso e verificado por teste (`schema-drift.test.ts`).
 
 `withSystem` tem cinco usos legitimos e documentados no proprio codigo (ver o
 comentario da funcao em `context.ts`). Qualquer sexto uso e bug de arquitetura.
+
+`withPublicBookingTenant` resolve o slug pela funcao SQL `public_booking_tenant()`
+(`SECURITY DEFINER`, devolve so o id e so quando `settings.publicBooking.enabled`)
+e depois roda exatamente como `withTenant`: role `petflow_app`, RLS ligado,
+`app.tenant_id` fixado. O link publico, portanto, nao ganhou acesso novo ao
+banco -- ganhou uma forma de descobrir o tenant sem sessao, e nada alem disso.
 
 ## Decisoes (ADRs)
 

@@ -35,6 +35,24 @@ export const AuditAction = {
   APPOINTMENT_STATUS_CHANGED: 'appointment.status_changed',
   APPOINTMENT_CANCELLED: 'appointment.cancelled',
 
+  SALE_CREATED: 'sale.created',
+  SALE_CANCELLED: 'sale.cancelled',
+
+  PRODUCT_CREATED: 'product.created',
+  PRODUCT_UPDATED: 'product.updated',
+  STOCK_MOVED: 'stock.moved',
+
+  MESSAGE_TEMPLATE_UPDATED: 'message_template.updated',
+  MESSAGE_QUEUED: 'message.queued',
+
+  PET_HEALTH_RECORDED: 'pet_health.recorded',
+  PET_HEALTH_UPDATED: 'pet_health.updated',
+  PET_HEALTH_DELETED: 'pet_health.deleted',
+
+  BOOKING_REQUESTED: 'booking.requested',
+  BOOKING_ACCEPTED: 'booking.accepted',
+  BOOKING_REJECTED: 'booking.rejected',
+
   PAYMENT_RECORDED: 'payment.recorded',
   PAYMENT_STATUS_CHANGED: 'payment.status_changed',
   MESSAGE_SENT: 'message.sent',
@@ -53,6 +71,11 @@ export const AuditEntity = {
   SERVICE: 'service',
   APPOINTMENT: 'appointment',
   PAYMENT: 'payment',
+  SALE: 'sale',
+  PRODUCT: 'product',
+  MESSAGE_TEMPLATE: 'message_template',
+  PET_HEALTH: 'pet_health',
+  BOOKING_REQUEST: 'booking_request',
   MESSAGE: 'message',
   CAMPAIGN: 'campaign',
   SESSION: 'session',

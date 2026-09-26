@@ -15,3 +15,8 @@ export * from './audit.js';
 export * from './retention.js';
 export * from './message.js';
 export * from './reports.js';
+export * from './inventory.js';
+export * from './sale.js';
+export * from './health.js';
+export * from './booking.js';
+export * from './assistant.js';

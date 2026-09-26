@@ -276,6 +276,16 @@ export async function assertActiveAccess(tx: Transaction, context: TenantContext
 }
 
 /**
+ * Leitura (somente) do bloqueio de acesso de um tenant, para caminhos sem
+ * sessao -- o link publico de agendamento fica indisponivel quando o pet shop
+ * esta com o acesso bloqueado. Nao altera assinatura nem nada do billing.
+ */
+export async function isTenantAccessBlocked(tx: Transaction, tenantId: string): Promise<boolean> {
+  const { subscription } = await getSubscriptionWithPlan(tx, tenantId);
+  return computeAccess(subscription).blocked;
+}
+
+/**
  * Barreira de limite. Conta o uso ATUAL (dentro da mesma transacao da
  * escrita, o que fecha a janela de corrida: duas criacoes simultaneas no
  * ultimo slot livre serializam pela mesma conexao/transacao e a segunda ve o

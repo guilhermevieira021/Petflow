@@ -181,3 +181,10 @@ export function formatTrialPeriod(hours: number | null | undefined): string | nu
   }
   return `${hours} ${hours === 1 ? 'hora' : 'horas'}`;
 }
+
+const quantityFormatter = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 3 });
+
+/** Quantidade de estoque em pt-BR: 20,5 / 1.250 / 0,125. */
+export function formatQuantity(value: number): string {
+  return quantityFormatter.format(value);
+}

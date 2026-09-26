@@ -51,3 +51,46 @@ export function dateRange(from: string, to: string): string[] {
   }
   return dates;
 }
+
+/**
+ * Offset do fuso, em minutos, no instante dado (`fuso - UTC`). Mesma tecnica
+ * de apps/web/src/lib/timezone.ts: formata no fuso alvo e reinterpreta como
+ * UTC. O Brasil nao usa horario de verao, entao uma passada e exata.
+ */
+function timeZoneOffsetMinutes(timeZone: string, atUtc: Date): number {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hourCycle: 'h23',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
+    .formatToParts(atUtc)
+    .reduce<Record<string, string>>((acc, part) => {
+      if (part.type !== 'literal') acc[part.type] = part.value;
+      return acc;
+    }, {});
+  const asIfUtc = Date.UTC(
+    Number(parts.year),
+    Number(parts.month) - 1,
+    Number(parts.day),
+    Number(parts.hour),
+    Number(parts.minute),
+    Number(parts.second),
+  );
+  return (asIfUtc - atUtc.getTime()) / 60_000;
+}
+
+/** Data + hora LOCAL do tenant ("2026-05-10", "09:30") para o instante UTC. */
+export function zonedTimeToUtc(date: string, time: string, timeZone: string): Date {
+  const guess = new Date(`${date}T${time}:00Z`);
+  return new Date(guess.getTime() - timeZoneOffsetMinutes(timeZone, guess) * 60_000);
+}
+
+/** Dia da semana (0 = domingo) de uma data de calendario. */
+export function weekdayOf(date: string): number {
+  return new Date(`${date}T12:00:00Z`).getUTCDay();
+}

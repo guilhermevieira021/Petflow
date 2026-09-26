@@ -11,6 +11,7 @@ import {
   CalendarDays,
   CheckCircle2,
   MessageCircle,
+  Syringe,
   TrendingDown,
   UserRoundX,
 } from 'lucide-react';
@@ -343,7 +344,7 @@ interface AlertItem {
   tone: 'warning' | 'danger' | 'info';
 }
 
-export function buildAlerts(data: Pick<DashboardOverview, 'today' | 'pendingReturns' | 'customers'>): AlertItem[] {
+export function buildAlerts(data: Pick<DashboardOverview, 'today' | 'pendingReturns' | 'customers' | 'healthDue'>): AlertItem[] {
   const alerts: AlertItem[] = [];
   if (data.today.scheduled > 0) {
     alerts.push({
@@ -375,6 +376,20 @@ export function buildAlerts(data: Pick<DashboardOverview, 'today' | 'pendingRetu
       tone: 'warning',
     });
   }
+  const healthTotal = data.healthDue.overdue + data.healthDue.dueSoon;
+  if (healthTotal > 0) {
+    alerts.push({
+      key: 'health',
+      icon: <Syringe className="size-4" />,
+      title: `${healthTotal} ${healthTotal === 1 ? 'vacina/vermífugo vencendo' : 'vacinas/vermífugos vencendo'}`,
+      detail:
+        data.healthDue.overdue > 0
+          ? `${data.healthDue.overdue} já ${data.healthDue.overdue === 1 ? 'venceu' : 'venceram'}. Avise os tutores.`
+          : 'Nos próximos 30 dias. Avise os tutores.',
+      to: '/recuperacao',
+      tone: data.healthDue.overdue > 0 ? 'danger' : 'warning',
+    });
+  }
   if (data.customers.inactive > 0) {
     alerts.push({
       key: 'inactive',
@@ -398,7 +413,7 @@ export function AlertsPanel({
   data,
   interactive = true,
 }: {
-  data: Pick<DashboardOverview, 'today' | 'pendingReturns' | 'customers'>;
+  data: Pick<DashboardOverview, 'today' | 'pendingReturns' | 'customers' | 'healthDue'>;
   /** false na landing: os itens nao levam a lugar nenhum. */
   interactive?: boolean;
 }) {

@@ -11,6 +11,7 @@ import { toCount, toIsoRequired, toNumber } from '../../core/serialization.js';
 import type { Transaction } from '../../db/client.js';
 import type { TenantContext } from '../../db/context.js';
 import { appointments, customers, payments, pets, services } from '../../db/schema/index.js';
+import { countDueHealth } from '../health/health.service.js';
 import { getTenant } from '../tenants/tenants.service.js';
 
 /** Janela do grafico de receita. */
@@ -98,6 +99,7 @@ export async function getOverview(
     tenant.settings.inactiveCustomerDays,
   );
   const pendingReturns = await countPendingReturns(tx, context);
+  const healthDue = await countDueHealth(tx, context);
 
   return {
     referenceDate,
@@ -106,6 +108,7 @@ export async function getOverview(
     week,
     customers: customerMetrics,
     pendingReturns,
+    healthDue,
     upcoming,
     revenueSeries,
   };

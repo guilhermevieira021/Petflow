@@ -46,9 +46,10 @@ export const payments = pgTable('payments', {
     .notNull()
     .references(() => tenants.id, { onDelete: 'cascade' }),
   appointmentId: uuid('appointment_id').references(() => appointments.id, { onDelete: 'restrict' }),
-  customerId: uuid('customer_id')
-    .notNull()
-    .references(() => customers.id, { onDelete: 'restrict' }),
+  /** Null somente em recebimento de venda de balcao sem cliente (CHECK payments_customer_or_sale). */
+  customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'restrict' }),
+  /** Venda que originou o recebimento (migration 0007). FK composta no SQL. */
+  saleId: uuid('sale_id'),
   amount: numeric('amount', { precision: 10, scale: 2 }).notNull(),
   method: text('method').$type<PaymentMethod>().notNull(),
   status: text('status').$type<PaymentStatus>().notNull().default('PENDING'),

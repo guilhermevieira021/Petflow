@@ -1,13 +1,17 @@
 import { Permission } from '@petflow/contracts';
 import {
   BarChart3,
+  Boxes,
   CalendarDays,
   CreditCard,
   Dog,
   LayoutDashboard,
   MessageSquare,
+  Package,
   Scissors,
   Settings,
+  ShoppingBag,
+  Sparkles,
   UserRoundCheck,
   Users,
   UsersRound,
@@ -36,9 +40,17 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: 'Início', shortLabel: 'Início', to: '/painel', icon: LayoutDashboard, permission: Permission.DASHBOARD_READ },
       { label: 'Agenda', to: '/agenda', icon: CalendarDays, permission: Permission.APPOINTMENTS_READ },
+      { label: 'Vendas', to: '/vendas', icon: ShoppingBag, permission: Permission.SALES_READ },
       { label: 'Clientes', to: '/clientes', icon: Users, permission: Permission.CUSTOMERS_READ },
       { label: 'Pets', to: '/pets', icon: Dog, permission: Permission.PETS_READ },
       { label: 'Serviços', to: '/servicos', icon: Scissors, permission: Permission.SERVICES_READ },
+    ],
+  },
+  {
+    title: 'Loja',
+    items: [
+      { label: 'Produtos', to: '/produtos', icon: Package, permission: Permission.PRODUCTS_READ },
+      { label: 'Estoque', to: '/estoque', icon: Boxes, permission: Permission.PRODUCTS_READ },
     ],
   },
   {
@@ -52,6 +64,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       { label: 'Mensagens', to: '/mensagens', icon: MessageSquare, permission: Permission.MESSAGES_READ },
       { label: 'Relatórios', to: '/relatorios', icon: BarChart3, permission: Permission.REPORTS_READ },
+      { label: 'Assistente', to: '/assistente', icon: Sparkles, permission: Permission.ASSISTANT_USE },
     ],
   },
   {
@@ -68,4 +81,4 @@ export const NAV_GROUPS: NavGroup[] = [
  * Destinos fixos da barra inferior no mobile -- o que o balcao usa o dia
  * inteiro. Todo o resto fica em "Mais". Somente telas que ja existem.
  */
-export const MOBILE_PRIMARY_ROUTES = ['/painel', '/agenda', '/clientes', '/pets'];
+export const MOBILE_PRIMARY_ROUTES = ['/painel', '/agenda', '/vendas', '/clientes'];

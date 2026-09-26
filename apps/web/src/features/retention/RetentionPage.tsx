@@ -7,6 +7,7 @@ import { Card, EmptyState, ErrorState, PageHeader, Skeleton } from '@/components
 import { MessageComposerDrawer } from '@/features/messages/MessageComposerDrawer';
 import { ApiError, api } from '@/lib/api';
 import { formatDate } from '@/lib/format';
+import { HealthDueCard } from './HealthDueCard';
 
 export function RetentionPage() {
   const [days, setDays] = useState<number | undefined>(undefined);
@@ -22,9 +23,11 @@ export function RetentionPage() {
   return (
     <>
       <PageHeader
-        title="Recuperacao de clientes"
-        description="Quem ja foi atendido, nao tem agendamento marcado e pode estar pronto para voltar."
+        title="Recuperação de clientes"
+        description="Quem já foi atendido, não tem agendamento marcado e pode estar pronto para voltar."
       />
+
+      <HealthDueCard />
 
       <div className="mb-4 flex flex-wrap gap-2">
         <button

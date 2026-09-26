@@ -55,6 +55,7 @@ export const DEMO_DASHBOARD: DashboardOverview = {
   },
   customers: { total: 312, newThisMonth: 18, inactive: 23, inactiveThresholdDays: 60 },
   pendingReturns: 9,
+  healthDue: { overdue: 2, dueSoon: 5 },
   upcoming: [
     { id: 'u1', startsAt: todayAt('14:00'), endsAt: todayAt('15:00'), status: 'CONFIRMED', customerName: 'Mariana Costa', customerWhatsapp: null, petName: 'Thor', serviceName: 'Banho e tosa', price: 120 },
     { id: 'u2', startsAt: todayAt('14:30'), endsAt: todayAt('15:00'), status: 'SCHEDULED', customerName: 'Rafael Lima', customerWhatsapp: null, petName: 'Mel', serviceName: 'Banho', price: 70 },

@@ -6,12 +6,17 @@ import { LoginPage } from '@/features/auth/LoginPage';
 import { ForgotPasswordPage, ResetPasswordPage } from '@/features/auth/PasswordRecoveryPages';
 import { RegisterPage } from '@/features/auth/RegisterPage';
 import { AgendaPage } from '@/features/appointments/AgendaPage';
+import { PublicBookingPage } from '@/features/booking/PublicBookingPage';
+import { AssistantPage } from '@/features/assistant/AssistantPage';
 import { BillingPage } from '@/features/billing/BillingPage';
 import { UpgradePage } from '@/features/billing/UpgradePage';
 import { CustomerDetailPage } from '@/features/customers/CustomerDetailPage';
 import { CustomersListPage } from '@/features/customers/CustomersListPage';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { EquipePage } from '@/features/equipe/EquipePage';
+import { ProductDetailPage } from '@/features/inventory/ProductDetailPage';
+import { ProductsPage } from '@/features/inventory/ProductsPage';
+import { StockPage } from '@/features/inventory/StockPage';
 import { LandingPage } from '@/features/landing/LandingPage';
 import { MessagesPage } from '@/features/messages/MessagesPage';
 import { OnboardingPage } from '@/features/onboarding/OnboardingPage';
@@ -20,6 +25,9 @@ import { PetsListPage } from '@/features/pets/PetsListPage';
 import { PricingPage } from '@/features/pricing/PricingPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
 import { RetentionPage } from '@/features/retention/RetentionPage';
+import { NewSalePage } from '@/features/sales/NewSalePage';
+import { SaleDetailPage } from '@/features/sales/SaleDetailPage';
+import { SalesPage } from '@/features/sales/SalesPage';
 import { ServicesPage } from '@/features/services/ServicesPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 
@@ -34,6 +42,8 @@ import { SettingsPage } from '@/features/settings/SettingsPage';
 export const router = createBrowserRouter([
   { path: '/', element: <LandingPage /> },
   { path: '/planos', element: <PricingPage /> },
+  // Link publico do pet shop: sem sessao, fora de qualquer guarda.
+  { path: '/agendar/:slug', element: <PublicBookingPage /> },
   {
     element: <RequireGuest />,
     children: [
@@ -61,6 +71,62 @@ export const router = createBrowserRouter([
             element: (
               <RequirePermission permission={Permission.APPOINTMENTS_READ}>
                 <AgendaPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: '/assistente',
+            element: (
+              <RequirePermission permission={Permission.ASSISTANT_USE}>
+                <AssistantPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: '/vendas',
+            element: (
+              <RequirePermission permission={Permission.SALES_READ}>
+                <SalesPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: '/vendas/nova',
+            element: (
+              <RequirePermission permission={Permission.SALES_WRITE}>
+                <NewSalePage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: '/vendas/:id',
+            element: (
+              <RequirePermission permission={Permission.SALES_READ}>
+                <SaleDetailPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: '/produtos',
+            element: (
+              <RequirePermission permission={Permission.PRODUCTS_READ}>
+                <ProductsPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: '/produtos/:id',
+            element: (
+              <RequirePermission permission={Permission.PRODUCTS_READ}>
+                <ProductDetailPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: '/estoque',
+            element: (
+              <RequirePermission permission={Permission.PRODUCTS_READ}>
+                <StockPage />
               </RequirePermission>
             ),
           },

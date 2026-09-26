@@ -212,3 +212,23 @@ describe('Pagamentos', () => {
     expect(customer.json<{ totalSpent: number }>().totalSpent).toBe(25);
   });
 });
+
+describe('estorno (regressao da constraint payments_paid_has_timestamp)', () => {
+  it('PAID -> REFUNDED funciona e preserva a data em que o dinheiro entrou', async () => {
+    const { customerId } = await seedCustomerPetService(shopA, 'Estorno');
+    const created = await authed(server, shopA.owner, {
+      method: 'POST',
+      url: '/api/payments',
+      payload: { customerId, amount: 25, method: 'PIX' },
+    });
+    const payment = created.json<{ id: string; paidAt: string }>();
+
+    const refunded = await authed(server, shopA.owner, {
+      method: 'PATCH',
+      url: `/api/payments/${payment.id}/status`,
+      payload: { status: 'REFUNDED' },
+    });
+    expect(refunded.statusCode).toBe(200);
+    expect(refunded.json<{ status: string; paidAt: string }>()).toMatchObject({ status: 'REFUNDED', paidAt: payment.paidAt });
+  });
+});

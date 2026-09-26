@@ -1,4 +1,5 @@
-import { jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import type { MessageTemplateType } from '@petflow/contracts';
+import { boolean, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { appointments } from './appointments.js';
 import { customers, pets } from './customers.js';
 import { tenants } from './tenants.js';
@@ -6,6 +7,7 @@ import { tenants } from './tenants.js';
 export const MessageType = {
   APPOINTMENT_REMINDER: 'APPOINTMENT_REMINDER',
   APPOINTMENT_CONFIRMATION: 'APPOINTMENT_CONFIRMATION',
+  APPOINTMENT_CANCELLATION: 'APPOINTMENT_CANCELLATION',
   POST_SERVICE_FOLLOWUP: 'POST_SERVICE_FOLLOWUP',
   RETURN_INVITE: 'RETURN_INVITE',
   WINBACK: 'WINBACK',
@@ -49,6 +51,12 @@ export const messages = pgTable('messages', {
   status: text('status').$type<MessageStatus>().notNull().default('DRAFT'),
   /** Identificador devolvido pelo provider, quando houver. */
   providerMessageId: text('provider_message_id'),
+  /** Template usado (migration 0008). FK composta no SQL. */
+  templateId: uuid('template_id'),
+  /** Telefone (digitos) para o qual a mensagem foi preparada/enviada. */
+  recipient: text('recipient'),
+  /** Provider que tentou o envio: 'link' (wa.me manual) ou 'cloud_api'. */
+  provider: text('provider').$type<'link' | 'cloud_api'>(),
   failureReason: text('failure_reason'),
   sentAt: timestamp('sent_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -56,6 +64,22 @@ export const messages = pgTable('messages', {
 });
 
 export type MessageRow = typeof messages.$inferSelect;
+
+/** Templates personalizados pelo pet shop (migration 0008). */
+export const messageTemplates = pgTable('message_templates', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: uuid('tenant_id')
+    .notNull()
+    .references(() => tenants.id, { onDelete: 'cascade' }),
+  type: text('type').$type<MessageTemplateType>().notNull(),
+  name: text('name').notNull(),
+  body: text('body').notNull(),
+  active: boolean('active').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type MessageTemplateRow = typeof messageTemplates.$inferSelect;
 
 export const CampaignType = {
   WINBACK: 'WINBACK',

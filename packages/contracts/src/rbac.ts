@@ -61,8 +61,19 @@ export const Permission = {
   PAYMENTS_READ: 'payments:read',
   PAYMENTS_WRITE: 'payments:write',
 
+  /** Vendas do pet shop aos proprios clientes (FLUXO 1 -- nao e a assinatura do Petflow). */
+  SALES_READ: 'sales:read',
+  SALES_WRITE: 'sales:write',
+  SALES_CANCEL: 'sales:cancel',
+
+  PRODUCTS_READ: 'products:read',
+  PRODUCTS_WRITE: 'products:write',
+  /** Entrada, saida e ajuste manual de estoque. Venda baixa o estoque sozinha. */
+  STOCK_WRITE: 'stock:write',
+
   MESSAGES_READ: 'messages:read',
   MESSAGES_SEND: 'messages:send',
+  MESSAGE_TEMPLATES_WRITE: 'messages:templates',
 
   CAMPAIGNS_READ: 'campaigns:read',
   CAMPAIGNS_WRITE: 'campaigns:write',
@@ -78,6 +89,9 @@ export const Permission = {
   USERS_WRITE: 'users:write',
 
   AUDIT_READ: 'audit:read',
+
+  /** Assistente: consultas sobre os dados do pet shop (inclui financeiro). */
+  ASSISTANT_USE: 'assistant:use',
 
   BILLING_READ: 'billing:read',
   BILLING_WRITE: 'billing:write',
@@ -97,6 +111,9 @@ const STAFF_PERMISSIONS: readonly Permission[] = [
   Permission.APPOINTMENTS_CANCEL,
   Permission.PAYMENTS_READ,
   Permission.PAYMENTS_WRITE,
+  Permission.SALES_READ,
+  Permission.SALES_WRITE,
+  Permission.PRODUCTS_READ,
   Permission.MESSAGES_READ,
   Permission.MESSAGES_SEND,
   Permission.RETENTION_READ,
@@ -107,6 +124,11 @@ const ADMIN_PERMISSIONS: readonly Permission[] = [
   Permission.CUSTOMERS_DELETE,
   Permission.PETS_DELETE,
   Permission.SERVICES_WRITE,
+  Permission.SALES_CANCEL,
+  Permission.PRODUCTS_WRITE,
+  Permission.STOCK_WRITE,
+  Permission.MESSAGE_TEMPLATES_WRITE,
+  Permission.ASSISTANT_USE,
   Permission.CAMPAIGNS_READ,
   Permission.CAMPAIGNS_WRITE,
   Permission.REPORTS_READ,

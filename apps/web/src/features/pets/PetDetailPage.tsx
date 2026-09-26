@@ -13,12 +13,8 @@ import {
   CalendarDays,
   CalendarPlus,
   ClipboardList,
-  HeartPulse,
   Pencil,
-  Pill,
   Power,
-  Repeat,
-  Syringe,
   UserRound,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -34,6 +30,7 @@ import { ApiError, api } from '@/lib/api';
 import { formatAge, formatCalendarDate, formatDate, formatDateTime, formatMoney, formatRelative } from '@/lib/format';
 import { PetAvatar } from './PetAvatar';
 import { PetFormDrawer } from './PetFormDrawer';
+import { PetHealthSection } from './PetHealthSection';
 
 /** Historico de servicos do pet -- filtro `petId` da propria API. */
 function PetHistory({ petId, timeZone }: { petId: string; timeZone: string }) {
@@ -101,17 +98,6 @@ function PetHistory({ petId, timeZone }: { petId: string; timeZone: string }) {
     </Card>
   );
 }
-
-/**
- * Espaco reservado para a ficha de saude. NADA disso existe no backend ainda
- * -- os cartoes deixam isso explicito ("Em breve") em vez de simular dados.
- */
-const HEALTH_PLACEHOLDERS = [
-  { icon: Syringe, title: 'Vacinas' },
-  { icon: Pill, title: 'Vermífugos' },
-  { icon: Repeat, title: 'Retornos' },
-  { icon: HeartPulse, title: 'Histórico clínico' },
-];
 
 export function PetDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -258,23 +244,7 @@ export function PetDetailPage() {
         <div className="flex min-w-0 flex-col gap-4">
           {canSeeAppointments ? <PetHistory petId={pet.id} timeZone={timeZone} /> : null}
 
-          <Card>
-            <CardHeader title="Saúde" description="Controle de vacinas, vermífugos e retornos." icon={<HeartPulse className="size-4" />} />
-            <ul className="grid grid-cols-2 gap-2.5 p-4 lg:grid-cols-4">
-              {HEALTH_PLACEHOLDERS.map((item) => (
-                <li
-                  key={item.title}
-                  className="flex flex-col gap-2 rounded-[var(--radius-md)] border border-dashed border-[var(--color-border-strong)] p-3.5"
-                >
-                  <item.icon aria-hidden className="size-4 text-[var(--color-text-subtle)]" />
-                  <span className="text-[0.8125rem] font-medium">{item.title}</span>
-                  <span className="text-[0.6875rem] font-medium tracking-wide text-[var(--color-text-subtle)] uppercase">
-                    Em breve
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </Card>
+          <PetHealthSection petId={pet.id} />
         </div>
 
         <div className="flex flex-col gap-4">

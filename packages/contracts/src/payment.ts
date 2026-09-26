@@ -13,11 +13,11 @@ export type PaymentMethod = (typeof PaymentMethod)[keyof typeof PaymentMethod];
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   CASH: 'Dinheiro',
-  DEBIT_CARD: 'Cartao de debito',
-  CREDIT_CARD: 'Cartao de credito',
-  PIX: 'Pix',
-  TRANSFER: 'Transferencia',
-  OTHER: 'Outro',
+  DEBIT_CARD: 'Cartão de débito',
+  CREDIT_CARD: 'Cartão de crédito',
+  PIX: 'PIX',
+  TRANSFER: 'Transferência',
+  OTHER: 'Outros',
 };
 
 export const paymentMethodSchema = z.nativeEnum(PaymentMethod, {
@@ -91,6 +91,7 @@ export type ChangePaymentStatusInput = z.infer<typeof changePaymentStatusInputSc
 export const listPaymentsQuerySchema = paginationQuerySchema.extend({
   customerId: uuidSchema.optional(),
   appointmentId: uuidSchema.optional(),
+  saleId: uuidSchema.optional(),
   status: paymentStatusSchema.optional(),
   from: isoDateTimeSchema.optional(),
   to: isoDateTimeSchema.optional(),
@@ -102,9 +103,11 @@ export type ListPaymentsQuery = z.infer<typeof listPaymentsQuerySchema>;
 export interface PaymentDto {
   id: string;
   tenantId: string;
-  customerId: string;
-  customerName: string;
+  /** Null somente em recebimento de venda de balcao sem cliente cadastrado. */
+  customerId: string | null;
+  customerName: string | null;
   appointmentId: string | null;
+  saleId: string | null;
   amount: number;
   method: PaymentMethod;
   status: PaymentStatus;

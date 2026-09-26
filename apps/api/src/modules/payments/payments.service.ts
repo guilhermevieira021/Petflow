@@ -20,13 +20,14 @@ import { assertActiveAccess } from '../billing/billing.service.js';
 import { recordAudit } from '../audit/audit.service.js';
 import { assertCustomerExists } from '../customers/customers.service.js';
 
-function toDto(row: typeof payments.$inferSelect, customerName: string): PaymentDto {
+export function toPaymentDto(row: typeof payments.$inferSelect, customerName: string | null): PaymentDto {
   return {
     id: row.id,
     tenantId: row.tenantId,
     customerId: row.customerId,
     customerName,
     appointmentId: row.appointmentId,
+    saleId: row.saleId,
     amount: toNumber(row.amount),
     method: row.method,
     status: row.status,
@@ -41,7 +42,8 @@ function detailQuery(tx: Transaction) {
   return tx
     .select({ payment: payments, customerName: customers.name })
     .from(payments)
-    .innerJoin(customers, eq(customers.id, payments.customerId));
+    // leftJoin: recebimento de venda de balcao pode nao ter cliente.
+    .leftJoin(customers, eq(customers.id, payments.customerId));
 }
 
 export async function listPayments(
@@ -52,6 +54,7 @@ export async function listPayments(
   const filters: SQL[] = [eq(payments.tenantId, context.tenantId)];
   if (query.customerId) filters.push(eq(payments.customerId, query.customerId));
   if (query.appointmentId) filters.push(eq(payments.appointmentId, query.appointmentId));
+  if (query.saleId) filters.push(eq(payments.saleId, query.saleId));
   if (query.status) filters.push(eq(payments.status, query.status));
   if (query.from) filters.push(gte(payments.createdAt, new Date(query.from)));
   if (query.to) filters.push(lte(payments.createdAt, new Date(query.to)));
@@ -69,7 +72,7 @@ export async function listPayments(
     .offset((query.page - 1) * query.pageSize);
 
   return {
-    data: rows.map((row) => toDto(row.payment, row.customerName)),
+    data: rows.map((row) => toPaymentDto(row.payment, row.customerName)),
     pagination: buildPagination(query.page, query.pageSize, toCount(totalRow?.value)),
   };
 }
@@ -79,7 +82,7 @@ export async function getPayment(tx: Transaction, context: TenantContext, paymen
     .where(and(eq(payments.id, paymentId), eq(payments.tenantId, context.tenantId)))
     .limit(1);
   if (!row) throw new NotFoundError('Pagamento');
-  return toDto(row.payment, row.customerName);
+  return toPaymentDto(row.payment, row.customerName);
 }
 
 async function assertAppointmentBelongsToCustomer(

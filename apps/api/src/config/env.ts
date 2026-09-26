@@ -43,6 +43,13 @@ const envSchema = z
     WHATSAPP_ACCESS_TOKEN: z.string().optional(),
     WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
 
+    // Assistente: provider de linguagem OPCIONAL, so no servidor. Sem ele, o
+    // assistente continua respondendo as perguntas prontas (consultas
+    // deterministicas); so a pergunta livre fica indisponivel.
+    AI_PROVIDER: z.enum(['none', 'anthropic']).default('none'),
+    AI_API_KEY: z.string().optional(),
+    AI_MODEL: z.string().default('claude-sonnet-5'),
+
     // Checkout hospedado do plano PRO na Cakto. Link estatico, fornecido
     // pelo dono do produto -- ver CAKTO.md. Sem isso configurado, o botao
     // "Assinar PRO" informa honestamente que o checkout nao esta disponivel.
@@ -97,6 +104,13 @@ const envSchema = z
         path: ['WHATSAPP_ACCESS_TOKEN'],
         message:
           'WHATSAPP_ACCESS_TOKEN e WHATSAPP_PHONE_NUMBER_ID sao obrigatorios quando WHATSAPP_PROVIDER=cloud_api.',
+      });
+    }
+    if (env.AI_PROVIDER === 'anthropic' && !env.AI_API_KEY) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['AI_API_KEY'],
+        message: 'AI_API_KEY e obrigatorio quando AI_PROVIDER=anthropic.',
       });
     }
   });

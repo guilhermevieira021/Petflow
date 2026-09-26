@@ -16,7 +16,7 @@ import { recordAudit } from '../audit/audit.service.js';
 import { assertCustomerExists } from '../customers/customers.service.js';
 import { assertPetBelongsToCustomer } from '../pets/pets.service.js';
 
-function toDto(row: {
+export function toMessageDto(row: {
   message: typeof messages.$inferSelect;
   customerName: string;
   petName: string | null;
@@ -35,6 +35,10 @@ function toDto(row: {
     status: row.message.status,
     sentAt: toIso(row.message.sentAt),
     createdAt: toIsoRequired(row.message.createdAt),
+    recipient: row.message.recipient,
+    templateId: row.message.templateId,
+    provider: row.message.provider,
+    failureReason: row.message.failureReason,
   };
 }
 
@@ -47,6 +51,7 @@ export async function listMessages(
   if (query.type) filters.push(eq(messages.type, query.type));
   if (query.status) filters.push(eq(messages.status, query.status));
   if (query.customerId) filters.push(eq(messages.customerId, query.customerId));
+  if (query.appointmentId) filters.push(eq(messages.appointmentId, query.appointmentId));
   const where = and(...filters);
 
   const [totalRow] = await tx.select({ value: sql<string>`count(*)` }).from(messages).where(where);
@@ -62,7 +67,7 @@ export async function listMessages(
     .offset((query.page - 1) * query.pageSize);
 
   return {
-    data: rows.map(toDto),
+    data: rows.map(toMessageDto),
     pagination: buildPagination(query.page, query.pageSize, toCount(totalRow?.value)),
   };
 }
@@ -97,6 +102,7 @@ export async function createMessage(
       content: input.content,
       status: 'OPENED_EXTERNALLY',
       sentAt: new Date(),
+      provider: 'link',
     })
     .returning();
 
@@ -114,5 +120,5 @@ export async function createMessage(
     ? (await tx.select({ name: pets.name }).from(pets).where(eq(pets.id, input.petId)).limit(1))[0]?.name ?? null
     : null;
 
-  return toDto({ message: row, customerName: customer?.name ?? '', petName });
+  return toMessageDto({ message: row, customerName: customer?.name ?? '', petName });
 }

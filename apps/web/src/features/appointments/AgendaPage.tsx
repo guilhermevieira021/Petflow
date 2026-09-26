@@ -21,6 +21,7 @@ import { ApiError, api } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { formatDateLong, formatTime } from '@/lib/format';
 import { localDayWindow, shiftDate, todayInTimeZone, toLocalDate } from '@/lib/timezone';
+import { BookingRequestsPanel } from '@/features/booking/BookingRequestsPanel';
 import { AppointmentCard } from './AppointmentCard';
 import { AppointmentFormDrawer } from './AppointmentFormDrawer';
 import { AppointmentStatusActions } from './AppointmentStatusActions';
@@ -338,6 +339,7 @@ export function AgendaPage() {
       <PageHeader title="Agenda" description="Atendimentos do dia, da semana e do mês." action={newButton} />
 
       {usage ? <LimitBanner label={LIMIT_KEY_LABELS.appointments} entry={usage} /> : null}
+      <BookingRequestsPanel />
 
       {/* Barra de controle: visualizacao + periodo */}
       <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">

@@ -90,6 +90,34 @@ export async function withSystem<T>(fn: (tx: Transaction) => Promise<T>): Promis
 }
 
 /**
+ * Transacao de uma requisicao PUBLICA do link de agendamento (sem sessao).
+ *
+ * NAO e withSystem: a conexao assume `petflow_app` (RLS ativo) e o tenant e
+ * descoberto pela funcao SQL `public_booking_tenant(slug)` (SECURITY DEFINER,
+ * migration 0010), que devolve APENAS o id e somente se o pet shop ligou o
+ * agendamento publico. A partir dai, `app.tenant_id` e definido como em
+ * withTenant, e toda consulta fica restrita as linhas desse tenant.
+ *
+ * Retorna `null` quando o slug nao existe ou o recurso esta desligado -- sem
+ * distinguir os casos, para o link nao servir de enumeracao de pet shops.
+ */
+export async function withPublicBookingTenant<T>(
+  slug: string,
+  fn: (tx: Transaction, tenantId: string) => Promise<T>,
+): Promise<T | null> {
+  const db = await getDatabase();
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`SET LOCAL ROLE petflow_app`);
+    const result = await tx.execute<{ id: string | null }>(sql`SELECT public_booking_tenant(${slug}) AS id`);
+    const tenantId = result.rows[0]?.id ?? null;
+    if (!tenantId) return null;
+    assertUuid(tenantId, 'tenantId');
+    await tx.execute(sql`SELECT set_config('app.tenant_id', ${tenantId}, true)`);
+    return fn(tx, tenantId);
+  });
+}
+
+/**
  * Serializa operacoes concorrentes por chave dentro da transacao corrente.
  * O lock e liberado automaticamente no COMMIT/ROLLBACK.
  *
