@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { ServiceUnavailableError, UnauthenticatedError } from '../../core/errors.js';
 import {
   applyStatusEvent,
+  countInboundMessages,
   extractStatusEvents,
   getWhatsappWebhookConfig,
   isValidMetaSignature,
@@ -56,13 +57,17 @@ export async function whatsappWebhookRoutes(app: FastifyInstance): Promise<void>
     }
 
     const events = extractStatusEvents(request.body);
-    const results = { updated: 0, ignored: 0, unknown: 0 };
+    const results = { updated: 0, ignored: 0, unknown: 0, mismatched: 0, inbound: 0 };
     for (const event of events) {
       const result = await applyStatusEvent(event);
       if (result === 'UPDATED') results.updated += 1;
       else if (result === 'IGNORED') results.ignored += 1;
+      else if (result === 'TENANT_MISMATCH') results.mismatched += 1;
       else results.unknown += 1;
     }
+    // Mensagens recebidas dos clientes: reconhecidas (200), ainda nao
+    // armazenadas -- caixa de entrada fica para uma proxima fase.
+    results.inbound = countInboundMessages(request.body).reduce((sum, item) => sum + item.count, 0);
     request.log.info({ events: events.length, ...results }, 'whatsapp webhook');
     // 200 sempre que autentico: a Meta reenvia em caso de erro.
     return reply.send({ received: events.length, ...results });

@@ -20,6 +20,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BellRing, CheckCircle2, ExternalLink, MessageSquare, Plug, PlugZap, RotateCcw, Send } from 'lucide-react';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Button, buttonClasses } from '@/components/ui/Button';
 import { Pagination } from '@/components/ui/Pagination';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
@@ -71,6 +72,14 @@ function ConnectionBanner({ status }: { status: WhatsappStatusDto }) {
           {status.connected ? 'WhatsApp conectado' : 'WhatsApp não conectado'}
         </p>
         <p className="mt-0.5 text-[0.8125rem] leading-relaxed text-[var(--color-text-muted)]">{status.message}</p>
+        {status.connected ? null : (
+          <Link
+            to="/configuracoes?aba=whatsapp"
+            className="mt-1.5 inline-block text-[0.8125rem] font-semibold text-[var(--color-brand-text)] hover:underline"
+          >
+            Conectar WhatsApp Business
+          </Link>
+        )}
         <p className="mt-1 text-[0.75rem] text-[var(--color-text-subtle)]">
           Mensagens automáticas (confirmação, cancelamento, reagendamento e pós-atendimento):{' '}
           <strong className="font-medium text-[var(--color-text-muted)]">{status.automationEnabled ? 'ligadas' : 'desligadas'}</strong>

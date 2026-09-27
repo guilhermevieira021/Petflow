@@ -19,8 +19,8 @@ import { BusinessRuleError, ConflictError, NotFoundError } from '../../core/erro
 import { toCount, toIsoRequired, toMoneyLiteral, toNumber } from '../../core/serialization.js';
 import type { Transaction } from '../../db/client.js';
 import { acquireTransactionLock, type TenantContext } from '../../db/context.js';
-import { getWhatsappProvider } from '../../integrations/whatsapp/whatsapp.provider.js';
 import { cancelAppointmentReminders, scheduleAppointmentReminder } from '../messages/reminders.service.js';
+import { getTenantWhatsappProvider } from '../messages/whatsapp-connection.service.js';
 import { enqueueAppointmentMessage } from '../messages/whatsapp.service.js';
 import { appointments, customers, pets, services, users } from '../../db/schema/index.js';
 import { assertActiveAccess, assertWithinLimit } from '../billing/billing.service.js';
@@ -376,7 +376,7 @@ export async function updateAppointment(
   // registra o aviso de reagendamento. O envio real acontece apos o commit.
   if (startsAt.getTime() !== current.startsAt.getTime()) {
     await scheduleAppointmentReminder(tx, context, appointmentId);
-    await enqueueAppointmentMessage(tx, context, appointmentId, 'APPOINTMENT_RESCHEDULE', getWhatsappProvider());
+    await enqueueAppointmentMessage(tx, context, appointmentId, 'APPOINTMENT_RESCHEDULE', await getTenantWhatsappProvider(tx, context.tenantId));
   }
 
   const [row] = await tx.select().from(appointments).where(eq(appointments.id, appointmentId)).limit(1);
@@ -438,11 +438,11 @@ export async function changeAppointmentStatus(
       context,
       appointmentId,
       input.status === 'CONFIRMED' ? 'APPOINTMENT_CONFIRMATION' : 'APPOINTMENT_CANCELLATION',
-      getWhatsappProvider(),
+      await getTenantWhatsappProvider(tx, context.tenantId),
     );
   }
   if (input.status === 'COMPLETED') {
-    await enqueueAppointmentMessage(tx, context, appointmentId, 'POST_SERVICE_FOLLOWUP', getWhatsappProvider());
+    await enqueueAppointmentMessage(tx, context, appointmentId, 'POST_SERVICE_FOLLOWUP', await getTenantWhatsappProvider(tx, context.tenantId));
   }
   // Atendimento encerrado (concluido, cancelado, falta): lembrete pendente perde o sentido.
   if (input.status === 'CANCELLED' || input.status === 'COMPLETED' || input.status === 'NO_SHOW') {

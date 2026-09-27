@@ -1,5 +1,4 @@
 import {
-  type WhatsappStatusDto,
   BRAZIL_TIMEZONES,
   isTimezone,
   Permission,
@@ -16,6 +15,7 @@ import { useToast } from '@/components/ui/Toast';
 import { RequirePermission } from '@/features/auth/guards';
 import { useSession } from '@/features/auth/session';
 import { AppearanceSection } from './AppearanceSection';
+import { WhatsAppConnectionSection } from './WhatsAppConnectionSection';
 import { ApiError, api } from '@/lib/api';
 import { formatPhone } from '@/lib/format';
 
@@ -406,45 +406,6 @@ function BookingSection({ tenant, readOnly }: { tenant: Tenant; readOnly: boolea
 }
 
 /* ---------------------------------------------------------------------------
-   WhatsApp
---------------------------------------------------------------------------- */
-
-function WhatsAppSection({ tenant }: { tenant: Tenant }) {
-  // Status REAL do servidor -- nunca um texto fixo dizendo que esta conectado.
-  const status = useQuery({
-    queryKey: ['messages', 'whatsapp-status'],
-    queryFn: () => api.get<WhatsappStatusDto>('/messages/whatsapp/status'),
-  });
-  return (
-    <Card>
-      <CardHeader title="WhatsApp" description="Como as mensagens do sistema chegam aos seus clientes." />
-      <CardBody className="flex flex-col gap-4">
-        <div>
-          <p className="text-[0.8125rem] text-[var(--color-text-muted)]">Número usado para contato</p>
-          <p className="mt-0.5 text-sm font-medium">
-            {tenant.whatsapp ? formatPhone(tenant.whatsapp) : 'Não configurado -- defina na aba Empresa'}
-          </p>
-        </div>
-
-        {status.data ? (
-          <div
-            role="status"
-            className={
-              status.data.connected
-                ? 'rounded-[var(--radius-md)] border border-[var(--color-success)]/25 bg-[var(--color-success-subtle)] p-3.5 text-[0.8125rem] text-[var(--color-success)]'
-                : 'rounded-[var(--radius-md)] border border-[var(--color-warning)]/25 bg-[var(--color-warning-subtle)] p-3.5 text-[0.8125rem] text-[var(--color-warning)]'
-            }
-          >
-            <strong className="font-semibold">{status.data.connected ? 'Conectado. ' : 'Não conectado. '}</strong>
-            {status.data.message}
-          </div>
-        ) : null}
-      </CardBody>
-    </Card>
-  );
-}
-
-/* ---------------------------------------------------------------------------
    Pagina
 --------------------------------------------------------------------------- */
 
@@ -508,7 +469,7 @@ export function SettingsPage() {
           <>
             {tab === 'empresa' ? <CompanySection tenant={query.data} readOnly={readOnly} /> : null}
             {tab === 'agendamento' ? <BookingSection tenant={query.data} readOnly={readOnly} /> : null}
-            {tab === 'whatsapp' ? <WhatsAppSection tenant={query.data} /> : null}
+            {tab === 'whatsapp' ? <WhatsAppConnectionSection tenant={query.data} readOnly={readOnly} /> : null}
             {tab === 'automacao' ? (
               <AutomationSection tenant={query.data} readOnly={readOnly} />
             ) : null}

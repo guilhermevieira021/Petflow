@@ -10,16 +10,17 @@ import {
   type AssistantToolDto,
   type AssistantToolResultDto,
 } from '@petflow/contracts';
-import { and, eq, gte, lt, notInArray, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, lt, notInArray, sql } from 'drizzle-orm';
 import { shiftDate, todayInTimeZone, zonedTimeToUtc } from '../../core/datetime.js';
 import { ServiceUnavailableError } from '../../core/errors.js';
 import type { Transaction } from '../../db/client.js';
 import type { TenantContext } from '../../db/context.js';
-import { appointments } from '../../db/schema/index.js';
+import { appointments, customers, pets, services } from '../../db/schema/index.js';
 import { AiProviderError, getAiProvider } from '../../integrations/ai/ai.provider.js';
 import { getOverview } from '../dashboard/dashboard.service.js';
 import { listDueHealth } from '../health/health.service.js';
-import { listProducts } from '../inventory/inventory.service.js';
+import { getInventoryInsights, getInventorySummary, listProducts } from '../inventory/inventory.service.js';
+import { getSalesSummary } from '../sales/sales.service.js';
 import { listRetentionCandidates } from '../retention/retention.service.js';
 import { getTenant } from '../tenants/tenants.service.js';
 
@@ -203,6 +204,119 @@ const TOOLS: readonly ToolDefinition[] = [
           href: `/produtos/${product.id}`,
         })),
         basis: `Produtos ativos com controle de estoque.${total > LIST_LIMIT ? ` Mostrando os ${LIST_LIMIT} com menor saldo.` : ''}`,
+      };
+    },
+  },
+  {
+    name: AssistantToolName.SALES_TODAY,
+    question: 'Quanto vendi hoje?',
+    description: 'Vendas do PDV registradas hoje (não canceladas) e quanto delas já foi recebido.',
+    permission: Permission.SALES_READ,
+    async run(tx, context) {
+      const tenant = await getTenant(tx, context);
+      const today = todayInTimeZone(tenant.timezone);
+      const from = zonedTimeToUtc(today, '00:00', tenant.timezone);
+      const to = zonedTimeToUtc(shiftDate(today, 1), '00:00', tenant.timezone);
+      const summary = await getSalesSummary(tx, context, { from: from.toISOString(), to: to.toISOString() });
+      return {
+        answer:
+          summary.salesCount === 0
+            ? 'Nenhuma venda registrada hoje até agora.'
+            : `Hoje você vendeu ${money.format(summary.totalSold)} em ${plural(summary.salesCount, 'venda', 'vendas')}.`,
+        rows: [
+          { label: 'Vendido', value: money.format(summary.totalSold) },
+          { label: 'Recebido', value: money.format(summary.totalReceived) },
+          { label: 'A receber', value: money.format(summary.totalOpen) },
+          { label: 'Vendas', value: String(summary.salesCount) },
+        ],
+        basis: `Vendas de hoje (${formatDay(today)}), exceto canceladas. Atendimentos da agenda não entram aqui.`,
+      };
+    },
+  },
+  {
+    name: AssistantToolName.TOP_PRODUCTS,
+    question: 'Qual produto vendeu mais?',
+    description: 'Produtos mais vendidos nos últimos 30 dias, por quantidade.',
+    permission: Permission.PRODUCTS_READ,
+    async run(tx, context) {
+      const insights = await getInventoryInsights(tx, context);
+      const [first] = insights.topSelling;
+      const quantity = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 3 });
+      return {
+        answer: first
+          ? `O mais vendido nos últimos ${insights.periodDays} dias foi ${first.name}: ${quantity.format(first.quantitySold)} ${first.unit === 'UN' ? 'unidades' : first.unit.toLowerCase()}.`
+          : `Nenhum produto vendido nos últimos ${insights.periodDays} dias.`,
+        rows: insights.topSelling.map((item) => ({
+          label: item.name,
+          value: `${quantity.format(item.quantitySold)} · ${money.format(item.revenue)}`,
+          href: `/produtos/${item.productId}`,
+        })),
+        basis: `Vendas não canceladas dos últimos ${insights.periodDays} dias.`,
+      };
+    },
+  },
+  {
+    name: AssistantToolName.STOCK_OVERVIEW,
+    question: 'Quanto tenho em estoque?',
+    description: 'Valor do estoque pelo custo, produtos ativos, com estoque baixo e zerados.',
+    permission: Permission.PRODUCTS_READ,
+    async run(tx, context) {
+      const summary = await getInventorySummary(tx, context);
+      return {
+        answer:
+          summary.activeProducts === 0
+            ? 'Nenhum produto cadastrado no estoque ainda.'
+            : `Você tem ${money.format(summary.stockCostValue)} em estoque (pelo custo), em ${plural(summary.activeProducts, 'produto ativo', 'produtos ativos')}.`,
+        rows: [
+          { label: 'Valor em estoque (custo)', value: money.format(summary.stockCostValue) },
+          { label: 'Produtos ativos', value: String(summary.activeProducts) },
+          { label: 'Estoque baixo', value: String(summary.lowStockProducts), href: '/estoque/baixo' },
+          { label: 'Zerados', value: String(summary.outOfStockProducts) },
+        ],
+        basis:
+          summary.productsWithoutCost > 0
+            ? `${plural(summary.productsWithoutCost, 'produto sem custo informado não entra', 'produtos sem custo informado não entram')} no valor.`
+            : 'Saldo atual × custo cadastrado de cada produto.',
+      };
+    },
+  },
+  {
+    name: AssistantToolName.APPOINTMENTS_TOMORROW,
+    question: 'Quantos atendimentos tenho amanhã?',
+    description: 'Atendimentos agendados ou confirmados para amanhã.',
+    permission: Permission.APPOINTMENTS_READ,
+    async run(tx, context) {
+      const tenant = await getTenant(tx, context);
+      const tomorrow = shiftDate(todayInTimeZone(tenant.timezone), 1);
+      const from = zonedTimeToUtc(tomorrow, '00:00', tenant.timezone);
+      const to = zonedTimeToUtc(shiftDate(tomorrow, 1), '00:00', tenant.timezone);
+      const rows = await tx
+        .select({ startsAt: appointments.startsAt, petName: pets.name, customerName: customers.name, serviceName: services.name })
+        .from(appointments)
+        .innerJoin(pets, eq(pets.id, appointments.petId))
+        .innerJoin(customers, eq(customers.id, appointments.customerId))
+        .innerJoin(services, eq(services.id, appointments.serviceId))
+        .where(
+          and(
+            eq(appointments.tenantId, context.tenantId),
+            inArray(appointments.status, ['SCHEDULED', 'CONFIRMED']),
+            gte(appointments.startsAt, from),
+            lt(appointments.startsAt, to),
+          ),
+        )
+        .orderBy(asc(appointments.startsAt));
+      const time = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: tenant.timezone });
+      return {
+        answer:
+          rows.length === 0
+            ? `Nenhum atendimento agendado para amanhã (${formatDay(tomorrow)}).`
+            : `Amanhã (${formatDay(tomorrow)}) você tem ${plural(rows.length, 'atendimento', 'atendimentos')}.`,
+        rows: rows.slice(0, LIST_LIMIT).map((row) => ({
+          label: `${time.format(row.startsAt)} · ${row.petName} (${row.customerName})`,
+          value: row.serviceName,
+          href: '/agenda',
+        })),
+        basis: `Agendados ou confirmados para ${formatDay(tomorrow)}.${rows.length > LIST_LIMIT ? ` Mostrando os ${LIST_LIMIT} primeiros.` : ''}`,
       };
     },
   },

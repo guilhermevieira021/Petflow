@@ -1,4 +1,6 @@
 import {
+  connectWhatsappEmbeddedInputSchema,
+  connectWhatsappManualInputSchema,
   createMessageInputSchema,
   idParamSchema,
   listMessagesQuerySchema,
@@ -14,8 +16,17 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { validate } from '../../core/validation.js';
 import { withTenant } from '../../db/context.js';
-import { getWhatsappProvider } from '../../integrations/whatsapp/whatsapp.provider.js';
 import { createMessage, listMessages } from '../../modules/messages/messages.service.js';
+import {
+  connectManually,
+  connectWithEmbeddedSignup,
+  disconnect,
+  getConnection,
+  getSetup,
+  getTenantWhatsappProvider,
+  resolveTenantWhatsappProvider,
+  testConnection,
+} from '../../modules/messages/whatsapp-connection.service.js';
 import {
   getReminderSchedulerStatus,
   listReminders,
@@ -57,7 +68,7 @@ export async function messagesRoutes(app: FastifyInstance): Promise<void> {
   app.get('/whatsapp/status', { preHandler: requirePermission(Permission.MESSAGES_READ) }, async (request, reply) => {
     const auth = currentAuth(request);
     return reply.send(
-      await withTenant(auth.context.tenantId, (tx) => getWhatsappStatus(tx, auth.context, getWhatsappProvider())),
+      await withTenant(auth.context.tenantId, async (tx) => getWhatsappStatus(tx, auth.context, await getTenantWhatsappProvider(tx, auth.context.tenantId))),
     );
   });
 
@@ -75,7 +86,7 @@ export async function messagesRoutes(app: FastifyInstance): Promise<void> {
   app.post('/send', { preHandler: requirePermission(Permission.MESSAGES_SEND) }, async (request, reply) => {
     const auth = currentAuth(request);
     const input = validate(sendMessageInputSchema, request.body);
-    const provider = getWhatsappProvider();
+    const provider = await resolveTenantWhatsappProvider(auth.context.tenantId);
 
     const registered = await withTenant(auth.context.tenantId, (tx) =>
       registerMessage(tx, auth.context, input, provider),
@@ -99,6 +110,40 @@ export async function messagesRoutes(app: FastifyInstance): Promise<void> {
     return reply.status(201).send(result);
   });
 
+  // Conexao do WhatsApp Business DESTE pet shop (API oficial da Meta).
+  // Leitura: qualquer um que ve mensagens. Conectar/testar/desconectar: quem
+  // altera configuracoes (proprietario). O token nunca sai do servidor.
+  app.get('/whatsapp/connection', { preHandler: requirePermission(Permission.MESSAGES_READ) }, async (request, reply) => {
+    const auth = currentAuth(request);
+    return reply.send(await withTenant(auth.context.tenantId, (tx) => getConnection(tx, auth.context)));
+  });
+
+  app.get('/whatsapp/setup', { preHandler: requirePermission(Permission.SETTINGS_READ) }, async (_request, reply) =>
+    reply.send(getSetup()),
+  );
+
+  app.post('/whatsapp/connection/embedded', { preHandler: requirePermission(Permission.SETTINGS_WRITE) }, async (request, reply) => {
+    const auth = currentAuth(request);
+    const input = validate(connectWhatsappEmbeddedInputSchema, request.body);
+    return reply.status(201).send(await connectWithEmbeddedSignup(auth.context, input));
+  });
+
+  app.post('/whatsapp/connection/manual', { preHandler: requirePermission(Permission.SETTINGS_WRITE) }, async (request, reply) => {
+    const auth = currentAuth(request);
+    const input = validate(connectWhatsappManualInputSchema, request.body);
+    return reply.status(201).send(await connectManually(auth.context, input));
+  });
+
+  app.post('/whatsapp/connection/test', { preHandler: requirePermission(Permission.SETTINGS_WRITE) }, async (request, reply) => {
+    const auth = currentAuth(request);
+    return reply.send(await testConnection(auth.context));
+  });
+
+  app.delete('/whatsapp/connection', { preHandler: requirePermission(Permission.SETTINGS_WRITE) }, async (request, reply) => {
+    const auth = currentAuth(request);
+    return reply.send(await withTenant(auth.context.tenantId, (tx) => disconnect(tx, auth.context)));
+  });
+
   // Lembretes: listagem da fila e processamento manual dos vencidos.
   app.get('/reminders', { preHandler: requirePermission(Permission.MESSAGES_READ) }, async (request, reply) => {
     const auth = currentAuth(request);
@@ -114,7 +159,7 @@ export async function messagesRoutes(app: FastifyInstance): Promise<void> {
   app.post('/reminders/process', { preHandler: requirePermission(Permission.MESSAGES_SEND) }, async (request, reply) => {
     const auth = currentAuth(request);
     const input = validate(processRemindersInputSchema, request.body ?? {});
-    return reply.send(await processDueReminders(auth.context, { ...input, trigger: 'manual' }, getWhatsappProvider()));
+    return reply.send(await processDueReminders(auth.context, { ...input, trigger: 'manual' }, await resolveTenantWhatsappProvider(auth.context.tenantId)));
   });
 
   app.get('/templates', { preHandler: requirePermission(Permission.MESSAGES_READ) }, async (request, reply) => {

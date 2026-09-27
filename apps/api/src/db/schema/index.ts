@@ -14,7 +14,7 @@ import { auditLogs } from './audit.js';
 import { appointments, payments } from './appointments.js';
 import { billingEvents } from './billing-events.js';
 import { plans, subscriptions } from './billing.js';
-import { campaigns, messages, messageTemplates, reminders } from './communications.js';
+import { campaigns, messages, messageTemplates, reminders, whatsappConnections } from './communications.js';
 import { brands, products, saleItems, sales, stockMovements, suppliers } from './commerce.js';
 import { bookingRequests, petHealthRecords } from './health.js';
 import { customers, pets } from './customers.js';
@@ -47,6 +47,7 @@ export const schema = {
   saleItems,
   stockMovements,
   messageTemplates,
+  whatsappConnections,
   petHealthRecords,
   bookingRequests,
 };

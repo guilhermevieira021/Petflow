@@ -50,6 +50,8 @@ export const AuditAction = {
 
   MESSAGE_TEMPLATE_UPDATED: 'message_template.updated',
   MESSAGE_QUEUED: 'message.queued',
+  WHATSAPP_CONNECTED: 'whatsapp.connected',
+  WHATSAPP_DISCONNECTED: 'whatsapp.disconnected',
 
   PET_HEALTH_RECORDED: 'pet_health.recorded',
   PET_HEALTH_UPDATED: 'pet_health.updated',
@@ -82,6 +84,7 @@ export const AuditEntity = {
   BRAND: 'brand',
   SUPPLIER: 'supplier',
   MESSAGE_TEMPLATE: 'message_template',
+  WHATSAPP_CONNECTION: 'whatsapp_connection',
   PET_HEALTH: 'pet_health',
   BOOKING_REQUEST: 'booking_request',
   MESSAGE: 'message',

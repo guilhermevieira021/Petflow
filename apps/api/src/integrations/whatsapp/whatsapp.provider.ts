@@ -1,10 +1,10 @@
 import type { WhatsappProviderKind } from '@petflow/contracts';
-import { env } from '../../config/env.js';
 
 /**
- * Provider de envio de WhatsApp.
+ * Provider de envio de WhatsApp. Cada PET SHOP tem o seu (conexao propria,
+ * resolvida em whatsapp-connection.service.ts); nao existe numero global.
  *
- *  - `link` (padrao): NAO envia nada. O sistema registra a mensagem como
+ *  - `link` (sem conexao): NAO envia nada. O sistema registra a mensagem como
  *    DRAFT ("registrada, nao enviada") e oferece o link wa.me para a pessoa
  *    enviar pelo proprio aplicativo. Nunca vira SENT.
  *  - `cloud_api`: API oficial da Meta (WhatsApp Business Cloud API). Envia de
@@ -96,27 +96,32 @@ export class CloudApiProvider implements WhatsappProvider {
   }
 }
 
-let cached: WhatsappProvider | null = null;
+/** Sem conexao: nada e enviado; a mensagem fica "registrada, nao enviada". */
+export const LINK_ONLY_PROVIDER: WhatsappProvider = new LinkOnlyProvider();
 
-export function getWhatsappProvider(): WhatsappProvider {
-  if (cached) return cached;
-  if (
-    env.WHATSAPP_PROVIDER === 'cloud_api' &&
-    env.WHATSAPP_ACCESS_TOKEN &&
-    env.WHATSAPP_PHONE_NUMBER_ID
-  ) {
-    cached = new CloudApiProvider({
-      apiUrl: env.WHATSAPP_API_URL ?? 'https://graph.facebook.com/v21.0',
-      accessToken: env.WHATSAPP_ACCESS_TOKEN,
-      phoneNumberId: env.WHATSAPP_PHONE_NUMBER_ID,
-    });
-  } else {
-    cached = new LinkOnlyProvider();
-  }
-  return cached;
+/**
+ * fetch usado para falar com a Graph API da Meta. Substituivel so em testes
+ * (nenhum teste chama a Meta de verdade).
+ */
+let metaFetch: typeof fetch = (...args) => fetch(...args);
+
+export function getMetaFetch(): typeof fetch {
+  return metaFetch;
+}
+
+/** Somente testes. */
+export function setMetaFetchForTests(fetchImpl: typeof fetch | null): void {
+  metaFetch = fetchImpl ?? ((...args) => fetch(...args));
+}
+
+let override: WhatsappProvider | null = null;
+
+/** Provider forcado em testes (vale para todos os pet shops). */
+export function getWhatsappProviderOverride(): WhatsappProvider | null {
+  return override;
 }
 
 /** Apenas para testes: injeta um provider controlado. */
 export function setWhatsappProviderForTests(provider: WhatsappProvider | null): void {
-  cached = provider;
+  override = provider;
 }

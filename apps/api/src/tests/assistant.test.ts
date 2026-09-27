@@ -91,7 +91,17 @@ describe('permissoes', () => {
     const response = await authed(server, adminA, { method: 'GET', url: '/api/assistant/tools' });
     expect(response.statusCode).toBe(200);
     expect(response.json<{ name: string }[]>().map((tool) => tool.name).sort()).toEqual(
-      ['emptiest_hours', 'health_due', 'inactive_customers', 'low_stock', 'received_this_week'],
+      [
+        'appointments_tomorrow',
+        'emptiest_hours',
+        'health_due',
+        'inactive_customers',
+        'low_stock',
+        'received_this_week',
+        'sales_today',
+        'stock_overview',
+        'top_products',
+      ],
     );
   });
 

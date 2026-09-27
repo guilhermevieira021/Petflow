@@ -38,10 +38,14 @@ const envSchema = z
     SMTP_USER: z.string().optional(),
     SMTP_PASSWORD: z.string().optional(),
 
-    WHATSAPP_PROVIDER: z.enum(['link', 'cloud_api']).default('link'),
-    WHATSAPP_API_URL: z.string().optional(),
-    WHATSAPP_ACCESS_TOKEN: z.string().optional(),
-    WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
+    // WhatsApp Business POR PET SHOP (0013). Nao existe mais numero/token
+    // global: cada tenant conecta o proprio numero e o token fica
+    // criptografado no banco com WHATSAPP_TOKEN_ENCRYPTION_KEY.
+    WHATSAPP_API_URL: z.string().default('https://graph.facebook.com/v21.0'),
+    WHATSAPP_TOKEN_ENCRYPTION_KEY: z.string().optional(),
+    // App da Meta do Petflow (Tech Provider) para o Embedded Signup.
+    META_APP_ID: z.string().optional(),
+    META_EMBEDDED_SIGNUP_CONFIG_ID: z.string().optional(),
     // Webhook de status (entregue/lida) da Meta. Sem os dois, o endpoint
     // responde 503 e NUNCA aceita notificacao sem validar a origem.
     WHATSAPP_VERIFY_TOKEN: z.string().optional(),
@@ -50,7 +54,11 @@ const envSchema = z
     // Assistente: provider de linguagem OPCIONAL, so no servidor. Sem ele, o
     // assistente continua respondendo as perguntas prontas (consultas
     // deterministicas); so a pergunta livre fica indisponivel.
-    AI_PROVIDER: z.enum(['none', 'anthropic']).default('none'),
+    // IA central do Petflow: a chave e do SaaS (Railway), nunca do cliente,
+    // nunca no frontend. `openai` e o provider principal.
+    AI_PROVIDER: z.enum(['none', 'openai', 'anthropic']).default('none'),
+    OPENAI_API_KEY: z.string().optional(),
+    OPENAI_MODEL: z.string().default('gpt-4o-mini'),
     AI_API_KEY: z.string().optional(),
     AI_MODEL: z.string().default('claude-sonnet-5'),
 
@@ -99,15 +107,11 @@ const envSchema = z
         message: 'SMTP_HOST e obrigatorio quando MAIL_PROVIDER=smtp.',
       });
     }
-    if (
-      env.WHATSAPP_PROVIDER === 'cloud_api' &&
-      (!env.WHATSAPP_ACCESS_TOKEN || !env.WHATSAPP_PHONE_NUMBER_ID)
-    ) {
+    if (env.AI_PROVIDER === 'openai' && !env.OPENAI_API_KEY) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ['WHATSAPP_ACCESS_TOKEN'],
-        message:
-          'WHATSAPP_ACCESS_TOKEN e WHATSAPP_PHONE_NUMBER_ID sao obrigatorios quando WHATSAPP_PROVIDER=cloud_api.',
+        path: ['OPENAI_API_KEY'],
+        message: 'OPENAI_API_KEY e obrigatorio quando AI_PROVIDER=openai.',
       });
     }
     if (env.AI_PROVIDER === 'anthropic' && !env.AI_API_KEY) {

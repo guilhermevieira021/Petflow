@@ -46,8 +46,8 @@ export async function getWhatsappStatus(
     connected: provider.configured,
     automationEnabled: tenant.settings.automationEnabled,
     message: provider.configured
-      ? 'WhatsApp conectado pela API oficial. Mensagens enviadas pelo sistema saem automaticamente.'
-      : 'WhatsApp não conectado. As mensagens ficam registradas como "não enviadas" e você pode enviá-las pelo link do WhatsApp. Para envio automático, a API oficial (WhatsApp Business Cloud API) precisa ser configurada no servidor.',
+      ? 'WhatsApp Business do seu pet shop conectado pela API oficial. As mensagens saem pelo seu número.'
+      : 'WhatsApp não conectado. As mensagens ficam registradas como "não enviadas" e você pode enviá-las pelo link do WhatsApp. Para enviar pelo sistema, conecte o WhatsApp Business do seu pet shop em Configurações › WhatsApp.',
   };
 }
 

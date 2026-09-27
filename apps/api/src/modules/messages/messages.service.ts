@@ -76,9 +76,9 @@ export async function listMessages(
  * Registra uma mensagem preparada pelo sistema e enviada por FORA dele -- o
  * usuario clicou no link do WhatsApp e enviou manualmente pelo proprio
  * aplicativo. Por isso ela ja nasce com status `OPENED_EXTERNALLY`: nao ha
- * confirmacao de entrega possivel neste modo (`WHATSAPP_PROVIDER=link`).
- * Quando um provider de API oficial for integrado, esta funcao passa a criar
- * a mensagem em `QUEUED` e um webhook do provider atualiza o status real.
+ * confirmacao de entrega possivel neste modo. Envios pela Cloud API (pet
+ * shop com WhatsApp conectado) seguem outro caminho e o webhook atualiza o
+ * status real.
  */
 export async function createMessage(
   tx: Transaction,

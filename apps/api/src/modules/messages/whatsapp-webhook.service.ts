@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { MessageStatus } from '@petflow/contracts';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { env } from '../../config/env.js';
 import { withProviderMessageTenant } from '../../db/context.js';
 import { messages, reminders } from '../../db/schema/index.js';
@@ -42,7 +42,27 @@ export function isValidMetaSignature(rawBody: Buffer, header: string | undefined
 export interface MetaStatusEvent {
   id: string;
   status: string;
+  /** Numero (phone_number_id) do pet shop que enviou -- vem em value.metadata. */
+  phoneNumberId?: string | null;
   errors?: { code?: number; title?: string; message?: string }[];
+}
+
+/** Mensagens RECEBIDAS por algum numero conectado (value.messages). */
+export function countInboundMessages(payload: unknown): { phoneNumberId: string | null; count: number }[] {
+  const result: { phoneNumberId: string | null; count: number }[] = [];
+  const entries = (payload as { entry?: unknown[] } | null)?.entry;
+  if (!Array.isArray(entries)) return result;
+  for (const entry of entries) {
+    const changes = (entry as { changes?: unknown[] }).changes;
+    if (!Array.isArray(changes)) continue;
+    for (const change of changes) {
+      const value = (change as { value?: { messages?: unknown[]; metadata?: { phone_number_id?: string } } }).value;
+      if (Array.isArray(value?.messages) && value.messages.length > 0) {
+        result.push({ phoneNumberId: value.metadata?.phone_number_id ?? null, count: value.messages.length });
+      }
+    }
+  }
+  return result;
 }
 
 /** Extrai os eventos de status do payload da Meta (ignora mensagens recebidas e outros campos). */
@@ -54,11 +74,14 @@ export function extractStatusEvents(payload: unknown): MetaStatusEvent[] {
     const changes = (entry as { changes?: unknown[] }).changes;
     if (!Array.isArray(changes)) continue;
     for (const change of changes) {
-      const statuses = (change as { value?: { statuses?: unknown[] } }).value?.statuses;
+      const value = (change as { value?: { statuses?: unknown[]; metadata?: { phone_number_id?: string } } }).value;
+      const statuses = value?.statuses;
       if (!Array.isArray(statuses)) continue;
       for (const status of statuses) {
         const item = status as MetaStatusEvent;
-        if (typeof item?.id === 'string' && typeof item?.status === 'string') events.push(item);
+        if (typeof item?.id === 'string' && typeof item?.status === 'string') {
+          events.push({ ...item, phoneNumberId: value?.metadata?.phone_number_id ?? null });
+        }
       }
     }
   }
@@ -75,13 +98,21 @@ const META_TO_STATUS: Record<string, MessageStatus> = {
 /** Ordem de avanco: uma notificacao atrasada ("sent" depois de "read") nunca rebaixa o status. */
 const RANK: Partial<Record<MessageStatus, number>> = { QUEUED: 1, SENT: 2, DELIVERED: 3, READ: 4 };
 
-export type StatusApplyResult = 'UPDATED' | 'IGNORED' | 'UNKNOWN_MESSAGE';
+export type StatusApplyResult = 'UPDATED' | 'IGNORED' | 'UNKNOWN_MESSAGE' | 'TENANT_MISMATCH';
 
 export async function applyStatusEvent(event: MetaStatusEvent): Promise<StatusApplyResult> {
   const next = META_TO_STATUS[event.status];
   if (!next) return 'IGNORED';
 
   const result = await withProviderMessageTenant(event.id, async (tx, tenantId) => {
+    // Multi-tenant: o numero que a Meta diz ter enviado precisa ser o numero
+    // conectado do MESMO pet shop dono da mensagem. Senao, ignora.
+    if (event.phoneNumberId) {
+      const owner = await tx.execute<{ tenant_id: string | null }>(
+        sql`SELECT whatsapp_tenant_by_phone_number_id(${event.phoneNumberId}) AS tenant_id`,
+      );
+      if ((owner.rows[0]?.tenant_id ?? null) !== tenantId) return 'TENANT_MISMATCH' as const;
+    }
     const [current] = await tx
       .select({ id: messages.id, status: messages.status })
       .from(messages)

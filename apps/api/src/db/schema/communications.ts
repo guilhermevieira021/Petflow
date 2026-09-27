@@ -67,6 +67,30 @@ export const messages = pgTable('messages', {
 export type MessageRow = typeof messages.$inferSelect;
 
 /** Templates personalizados pelo pet shop (migration 0008). */
+/** Conexao do WhatsApp Business de cada pet shop (0013). */
+export const whatsappConnections = pgTable('whatsapp_connections', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: uuid('tenant_id')
+    .notNull()
+    .references(() => tenants.id, { onDelete: 'cascade' }),
+  status: text('status').$type<'CONNECTED' | 'DISCONNECTED' | 'ERROR'>().notNull().default('CONNECTED'),
+  connectionMethod: text('connection_method').$type<'EMBEDDED_SIGNUP' | 'MANUAL'>().notNull(),
+  wabaId: text('waba_id').notNull(),
+  phoneNumberId: text('phone_number_id').notNull(),
+  displayPhoneNumber: text('display_phone_number'),
+  verifiedName: text('verified_name'),
+  cloudApiReady: boolean('cloud_api_ready').notNull().default(false),
+  accessTokenCiphertext: text('access_token_ciphertext'),
+  tokenLast4: text('token_last4'),
+  connectedBy: uuid('connected_by'),
+  connectedAt: timestamp('connected_at', { withTimezone: true }),
+  disconnectedAt: timestamp('disconnected_at', { withTimezone: true }),
+  lastCheckedAt: timestamp('last_checked_at', { withTimezone: true }),
+  lastError: text('last_error'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const messageTemplates = pgTable('message_templates', {
   id: uuid('id').primaryKey().defaultRandom(),
   tenantId: uuid('tenant_id')

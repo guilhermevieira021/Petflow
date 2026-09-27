@@ -1,4 +1,5 @@
 import type { AssistantToolName } from '@petflow/contracts';
+import OpenAI from 'openai';
 import { env } from '../../config/env.js';
 
 /**
@@ -26,7 +27,7 @@ export class AiProviderError extends Error {
 }
 
 export interface AiProvider {
-  readonly kind: 'none' | 'anthropic';
+  readonly kind: 'none' | 'openai' | 'anthropic';
   readonly configured: boolean;
   /** Nome da consulta que responde a pergunta, ou null se nenhuma serve. */
   chooseTool(question: string, tools: readonly ToolChoiceCandidate[]): Promise<AssistantToolName | null>;
@@ -92,14 +93,84 @@ export class AnthropicProvider implements AiProvider {
   }
 }
 
+const SYSTEM_PROMPT =
+  'Voce escolhe qual consulta do sistema de um pet shop responde a pergunta do usuario. ' +
+  'Use exatamente uma ferramenta se alguma servir. Se nenhuma servir, nao chame ferramenta. ' +
+  'Nunca responda a pergunta voce mesmo e nunca invente numeros.';
+
+/** Parte do SDK usada aqui -- permite injetar um cliente falso nos testes. */
+export interface OpenAIChatClient {
+  chat: {
+    completions: {
+      create(body: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming): Promise<OpenAI.Chat.ChatCompletion>;
+    };
+  };
+}
+
+/**
+ * OpenAI (SDK oficial), com function calling: cada consulta vira uma funcao
+ * sem parametros. O modelo recebe so a pergunta e a lista de consultas --
+ * nenhum dado do pet shop sai do servidor.
+ */
+export class OpenAIProvider implements AiProvider {
+  readonly kind = 'openai' as const;
+  readonly configured = true;
+  private readonly client: OpenAIChatClient;
+
+  constructor(
+    private readonly config: { apiKey: string; model: string },
+    client?: OpenAIChatClient,
+  ) {
+    this.client = client ?? new OpenAI({ apiKey: config.apiKey, timeout: 15_000, maxRetries: 1 });
+  }
+
+  async chooseTool(question: string, tools: readonly ToolChoiceCandidate[]): Promise<AssistantToolName | null> {
+    let completion: OpenAI.Chat.ChatCompletion;
+    try {
+      completion = await this.client.chat.completions.create({
+        model: this.config.model,
+        temperature: 0,
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: question },
+        ],
+        tools: tools.map((tool) => ({
+          type: 'function' as const,
+          function: {
+            name: tool.name,
+            description: `${tool.question} ${tool.description}`,
+            parameters: { type: 'object', properties: {} },
+          },
+        })),
+        tool_choice: 'auto',
+      });
+    } catch (error) {
+      // So o status: a mensagem do SDK nunca vai para log/resposta (pode
+      // ecoar parte da requisicao). A chave nunca e incluida.
+      const status = error instanceof OpenAI.APIError ? error.status : undefined;
+      throw new AiProviderError(status ? `Provider de IA respondeu com status ${status}.` : 'Nao foi possivel falar com o provider de IA.');
+    }
+    const call = completion.choices[0]?.message.tool_calls?.find((item) => item.type === 'function');
+    const name = call && call.type === 'function' ? call.function.name : null;
+    const chosen = tools.find((tool) => tool.name === name);
+    return chosen?.name ?? null;
+  }
+}
+
 let override: AiProvider | null = null;
+let cached: AiProvider | null = null;
 
 export function getAiProvider(): AiProvider {
   if (override) return override;
-  if (env.AI_PROVIDER === 'anthropic' && env.AI_API_KEY) {
-    return new AnthropicProvider({ apiKey: env.AI_API_KEY, model: env.AI_MODEL });
+  if (cached) return cached;
+  if (env.AI_PROVIDER === 'openai' && env.OPENAI_API_KEY) {
+    cached = new OpenAIProvider({ apiKey: env.OPENAI_API_KEY, model: env.OPENAI_MODEL });
+  } else if (env.AI_PROVIDER === 'anthropic' && env.AI_API_KEY) {
+    cached = new AnthropicProvider({ apiKey: env.AI_API_KEY, model: env.AI_MODEL });
+  } else {
+    cached = new NoProvider();
   }
-  return new NoProvider();
+  return cached;
 }
 
 /** Somente testes. */

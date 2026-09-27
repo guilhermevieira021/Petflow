@@ -8,8 +8,8 @@ import {
   updateAppointmentInputSchema,
 } from '@petflow/contracts';
 import type { FastifyInstance } from 'fastify';
-import { getWhatsappProvider } from '../../integrations/whatsapp/whatsapp.provider.js';
 import { dispatchQueuedForAppointment } from '../../modules/messages/whatsapp.service.js';
+import { resolveTenantWhatsappProvider } from '../../modules/messages/whatsapp-connection.service.js';
 import { ForbiddenError } from '../../core/errors.js';
 import { validate } from '../../core/validation.js';
 import { withTenant } from '../../db/context.js';
@@ -71,7 +71,7 @@ export async function appointmentsRoutes(app: FastifyInstance): Promise<void> {
         updateAppointment(tx, auth.context, id, input),
       );
       // Aviso de reagendamento (se registrado) sai apos o commit, so com API conectada.
-      await dispatchQueuedForAppointment(auth.context, id, getWhatsappProvider());
+      await dispatchQueuedForAppointment(auth.context, id, await resolveTenantWhatsappProvider(auth.context.tenantId));
       return reply.send(appointment);
     },
   );
@@ -94,7 +94,7 @@ export async function appointmentsRoutes(app: FastifyInstance): Promise<void> {
       // Envio real (apenas com API do WhatsApp conectada) acontece depois do
       // commit, fora da transacao. Falha de envio fica registrada na
       // mensagem (FAILED) e nunca desfaz a mudanca de status.
-      await dispatchQueuedForAppointment(auth.context, id, getWhatsappProvider());
+      await dispatchQueuedForAppointment(auth.context, id, await resolveTenantWhatsappProvider(auth.context.tenantId));
       return reply.send(appointment);
     },
   );

@@ -11,8 +11,7 @@ import { whatsappLink } from '@/lib/format';
 /**
  * Composer de mensagem manual.
  *
- * Enquanto WHATSAPP_PROVIDER=link (o unico modo disponivel hoje no backend),
- * "enviar" significa: abrir o WhatsApp com o texto pronto para a PESSOA
+ * Aqui "enviar" (manual) significa: abrir o WhatsApp com o texto pronto para a PESSOA
  * confirmar o envio, e registrar aqui que isso aconteceu. Nada e enviado pelo
  * sistema sozinho -- ver apps/api/src/modules/messages.
  */

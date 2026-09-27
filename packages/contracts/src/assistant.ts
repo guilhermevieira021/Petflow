@@ -16,6 +16,10 @@ export const AssistantToolName = {
   HEALTH_DUE: 'health_due',
   EMPTIEST_HOURS: 'emptiest_hours',
   LOW_STOCK: 'low_stock',
+  SALES_TODAY: 'sales_today',
+  TOP_PRODUCTS: 'top_products',
+  STOCK_OVERVIEW: 'stock_overview',
+  APPOINTMENTS_TOMORROW: 'appointments_tomorrow',
 } as const;
 export type AssistantToolName = (typeof AssistantToolName)[keyof typeof AssistantToolName];
 
@@ -53,7 +57,7 @@ export type AskAssistantInput = z.infer<typeof askAssistantInputSchema>;
 export interface AssistantStatusDto {
   /** Provider de linguagem configurado no servidor (perguntas livres). */
   languageModelConfigured: boolean;
-  provider: 'none' | 'anthropic';
+  provider: 'none' | 'openai' | 'anthropic';
   message: string;
 }
 

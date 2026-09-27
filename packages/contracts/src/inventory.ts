@@ -215,7 +215,7 @@ export type StockMovementSource = (typeof StockMovementSource)[keyof typeof Stoc
 export const STOCK_MOVEMENT_SOURCE_LABELS: Record<StockMovementSource, string> = {
   MANUAL: 'Manual',
   BARCODE: 'Leitor de código',
-  SALE: 'Módulo de vendas',
+  SALE: 'PDV (caixa)',
   PRODUCT_CREATION: 'Cadastro do produto',
 };
 

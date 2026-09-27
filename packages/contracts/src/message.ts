@@ -108,6 +108,76 @@ export interface MessageDto {
 /** `link`: so abre wa.me (envio manual). `cloud_api`: API oficial da Meta. */
 export type WhatsappProviderKind = 'link' | 'cloud_api';
 
+// -----------------------------------------------------------------------------
+// Conexao do WhatsApp Business POR PET SHOP (API oficial da Meta)
+// -----------------------------------------------------------------------------
+
+/** IDs da Meta (WABA, phone number): so digitos. Nao sao segredo. */
+const metaIdSchema = z
+  .string({ required_error: 'Informe o identificador.' })
+  .trim()
+  .regex(/^[0-9]{5,32}$/, 'Identificador da Meta inválido (apenas números).');
+
+export type WhatsappConnectionStatus = 'NOT_CONNECTED' | 'CONNECTED' | 'ERROR';
+export type WhatsappConnectionMethod = 'EMBEDDED_SIGNUP' | 'MANUAL';
+
+export interface WhatsappConnectionDto {
+  status: WhatsappConnectionStatus;
+  method: WhatsappConnectionMethod | null;
+  displayPhoneNumber: string | null;
+  verifiedName: string | null;
+  phoneNumberId: string | null;
+  wabaId: string | null;
+  /** Apenas os 4 ultimos caracteres do token (ex.: "••••a1b2"). O token nunca sai do servidor. */
+  tokenHint: string | null;
+  /** O numero esta registrado na Cloud API (pronto para enviar). */
+  cloudApiReady: boolean;
+  connectedAt: string | null;
+  lastCheckedAt: string | null;
+  lastError: string | null;
+}
+
+/** O que o servidor tem configurado para permitir conectar. */
+export interface WhatsappSetupDto {
+  embeddedSignup: {
+    /** App da Meta do Petflow configurado (META_APP_ID + config + secret). */
+    available: boolean;
+    appId: string | null;
+    configId: string | null;
+    graphVersion: string;
+  };
+  /** Chave de criptografia presente: sem ela nenhum token pode ser guardado. */
+  storageReady: boolean;
+  /** Webhook de status configurado (verify token + app secret). */
+  webhookConfigured: boolean;
+}
+
+export const connectWhatsappEmbeddedInputSchema = z
+  .object({
+    /** Codigo devolvido pelo Embedded Signup (troca por token no servidor). */
+    code: z.string().trim().min(10, 'Código inválido.').max(4000),
+    wabaId: metaIdSchema,
+    phoneNumberId: metaIdSchema,
+  })
+  .strict();
+export type ConnectWhatsappEmbeddedInput = z.infer<typeof connectWhatsappEmbeddedInputSchema>;
+
+export const connectWhatsappManualInputSchema = z
+  .object({
+    wabaId: metaIdSchema,
+    phoneNumberId: metaIdSchema,
+    /** Token de usuario de sistema (permanente). Guardado criptografado. */
+    accessToken: z.string().trim().min(20, 'Token inválido.').max(2000),
+  })
+  .strict();
+export type ConnectWhatsappManualInput = z.infer<typeof connectWhatsappManualInputSchema>;
+
+export interface WhatsappTestResultDto {
+  ok: boolean;
+  message: string;
+  connection: WhatsappConnectionDto;
+}
+
 export interface WhatsappStatusDto {
   provider: WhatsappProviderKind;
   /** true somente com a API oficial configurada no servidor. */
