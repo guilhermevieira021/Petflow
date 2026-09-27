@@ -20,7 +20,7 @@ describe('LimitBanner', () => {
 
   it('mostra aviso a partir de 80% de uso', () => {
     render(<LimitBanner label="Clientes" entry={{ used: 8, limit: 10 }} />, { wrapper: MemoryRouter });
-    expect(screen.getByText(/ja usou 8 de 10 clientes/i)).toBeInTheDocument();
+    expect(screen.getByText(/já usou 8 de 10 clientes/i)).toBeInTheDocument();
   });
 
   it('mostra mensagem de limite atingido no maximo, com link de upgrade', () => {

@@ -42,7 +42,7 @@ export function RetentionPage() {
               : 'rounded-[var(--radius-md)] border border-[var(--color-border-strong)] px-3 py-1.5 text-[0.8125rem] font-medium text-[var(--color-text-muted)] hover:text-[var(--color-text)]'
           }
         >
-          Padrao do pet shop
+          Padrão do pet shop
         </button>
         {RETENTION_WINDOW_OPTIONS.map((option) => (
           <button
@@ -66,7 +66,7 @@ export function RetentionPage() {
       <Card>
         {query.isLoading ? (
           <div className="flex flex-col gap-2 p-4" aria-busy="true">
-            <span className="sr-only">Carregando lista de recuperacao</span>
+            <span className="sr-only">Carregando lista de recuperação</span>
             {Array.from({ length: 5 }, (_, index) => <Skeleton key={index} className="h-14 w-full" />)}
           </div>
         ) : null}
@@ -82,7 +82,7 @@ export function RetentionPage() {
           <EmptyState
             icon={<UserRoundCheck className="size-5" />}
             title="Nenhum cliente para recuperar por agora"
-            description="Otimo sinal -- ninguem esta sumido dentro do periodo selecionado."
+            description="Ótimo sinal -- ninguém está sumido dentro do período selecionado."
           />
         ) : null}
 
@@ -94,7 +94,7 @@ export function RetentionPage() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{entry.customerName}</p>
                     <p className="truncate text-[0.8125rem] text-[var(--color-text-muted)]">
-                      {entry.petNames.join(', ') || 'Sem pets cadastrados'} &middot; ultimo atendimento em{' '}
+                      {entry.petNames.join(', ') || 'Sem pets cadastrados'} &middot; último atendimento em{' '}
                       {formatDate(entry.lastVisitAt)}
                     </p>
                   </div>
@@ -104,7 +104,7 @@ export function RetentionPage() {
                   <button
                     type="button"
                     onClick={() => setComposer(entry)}
-                    className="flex shrink-0 items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-success)] px-3 py-1.5 text-[0.8125rem] font-medium text-white hover:opacity-90"
+                    className="flex shrink-0 items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-success-solid)] px-3 py-1.5 text-[0.8125rem] font-medium text-white hover:opacity-90"
                   >
                     <MessageCircle aria-hidden className="size-3.5" />
                     Enviar mensagem
@@ -126,7 +126,7 @@ export function RetentionPage() {
           type="WINBACK"
           suggestedText={`Oi, ${composer.customerName.split(' ')[0]}! Tudo bem? ${
             composer.petNames[0] ?? 'Seu pet'
-          } ja esta chegando na epoca do proximo atendimento. Quer que eu veja um horario?`}
+          } já esta chegando na epoca do próximo atendimento. Quer que eu veja um horário?`}
           onClose={() => setComposer(null)}
         />
       ) : null}

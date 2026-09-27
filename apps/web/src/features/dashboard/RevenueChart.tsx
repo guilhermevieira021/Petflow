@@ -113,7 +113,7 @@ export function RevenueChart({ data }: { data: DashboardRevenuePoint[] }) {
           width={width}
           height={HEIGHT}
           role="img"
-          aria-label={`Receita prevista e recebida nos ultimos ${data.length} dias`}
+          aria-label={`Receita prevista e recebida nos últimos ${data.length} dias`}
           className="block overflow-visible"
           onMouseLeave={() => setHover(null)}
         >

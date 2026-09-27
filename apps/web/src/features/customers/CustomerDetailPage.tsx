@@ -138,7 +138,7 @@ export function CustomerDetailPage() {
       toast.success('Cliente desativado.');
       setConfirmDeactivate(false);
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Nao foi possivel desativar.');
+      toast.error(error instanceof ApiError ? error.message : 'Não foi possível desativar.');
     } finally {
       setDeactivating(false);
     }
@@ -161,7 +161,7 @@ export function CustomerDetailPage() {
           message={
             customerQuery.error instanceof ApiError
               ? customerQuery.error.message
-              : 'Nao foi possivel carregar este cliente.'
+              : 'Não foi possível carregar este cliente.'
           }
           onRetry={() => void customerQuery.refetch()}
         />

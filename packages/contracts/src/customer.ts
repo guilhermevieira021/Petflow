@@ -28,7 +28,7 @@ function isValidCpf(digits: string): boolean {
 export const cpfSchema = z
   .string()
   .transform((value) => value.replace(/\D/g, ''))
-  .refine(isValidCpf, 'Informe um CPF valido.');
+  .refine(isValidCpf, 'Informe um CPF válido.');
 
 export const optionalCpfSchema = z
   .string()

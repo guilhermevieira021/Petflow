@@ -148,7 +148,7 @@ export function LostPanel({
           aria-hidden
           className={cn(
             'flex size-8 items-center justify-center rounded-full',
-            hasLoss ? 'bg-[var(--color-danger)] text-white' : 'bg-[var(--color-surface-sunken)] text-[var(--color-text-subtle)]',
+            hasLoss ? 'bg-[var(--color-danger-solid)] text-white' : 'bg-[var(--color-surface-sunken)] text-[var(--color-text-subtle)]',
           )}
         >
           <TrendingDown className="size-4" />
@@ -498,7 +498,7 @@ export function UpcomingList({
         const link = interactive
           ? whatsappLink(
               item.customerWhatsapp,
-              `Ola, ${item.customerName.split(' ')[0]}! Confirmando o atendimento do ${item.petName} as ${formatTime(item.startsAt, timeZone)}.`,
+              `Olá, ${item.customerName.split(' ')[0]}! Confirmando o atendimento do ${item.petName} às ${formatTime(item.startsAt, timeZone)}.`,
             )
           : null;
 

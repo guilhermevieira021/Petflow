@@ -69,7 +69,7 @@ function StatusPanel({ billing }: { billing: BillingStatusDto }) {
       <div className="flex items-start gap-3 rounded-[var(--radius-md)] border border-[var(--color-warning)]/25 bg-[var(--color-warning-subtle)] p-4">
         <ShieldAlert aria-hidden className="mt-0.5 size-5 shrink-0 text-[var(--color-warning)]" />
         <p className="text-[0.875rem] font-medium text-[var(--color-warning)]">
-          Existe um problema com seu pagamento. Atualize os dados de cobranca para evitar interrupcoes.
+          Existe um problema com seu pagamento. Atualize os dados de cobrança para evitar interrupções.
         </p>
       </div>
     );
@@ -81,7 +81,7 @@ function StatusPanel({ billing }: { billing: BillingStatusDto }) {
         <Clock aria-hidden className="mt-0.5 size-5 shrink-0 text-[var(--color-text-muted)]" />
         <p className="text-[0.875rem] text-[var(--color-text-muted)]">
           Seu plano foi cancelado
-          {subscription.currentPeriodEnd ? ` e sera encerrado em ${formatDate(subscription.currentPeriodEnd)}` : ''}.
+          {subscription.currentPeriodEnd ? ` e será encerrado em ${formatDate(subscription.currentPeriodEnd)}` : ''}.
         </p>
       </div>
     );
@@ -186,7 +186,7 @@ export function BillingPage() {
       await queryClient.invalidateQueries({ queryKey: ['billing'] });
       await queryClient.invalidateQueries({ queryKey: ['session'] });
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Nao foi possivel iniciar o checkout.');
+      toast.error(error instanceof ApiError ? error.message : 'Não foi possível iniciar o checkout.');
     } finally {
       setCheckoutLoading(false);
     }

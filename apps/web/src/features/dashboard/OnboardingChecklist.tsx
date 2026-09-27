@@ -34,7 +34,7 @@ export function OnboardingChecklist({
         aria-valuenow={percentage}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-label="Progresso da configuracao inicial"
+        aria-label="Progresso da configuração inicial"
         className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-surface-sunken)]"
       >
         <div
@@ -51,7 +51,7 @@ export function OnboardingChecklist({
               className={cn(
                 'flex size-4.5 shrink-0 items-center justify-center rounded-full border',
                 step.done
-                  ? 'border-[var(--color-success)] bg-[var(--color-success)] text-white'
+                  ? 'border-[var(--color-success-solid)] bg-[var(--color-success-solid)] text-white'
                   : 'border-[var(--color-border-strong)]',
               )}
             >

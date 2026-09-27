@@ -61,7 +61,7 @@ function ConnectionBanner({ status }: { status: WhatsappStatusDto }) {
         aria-hidden
         className={cn(
           'flex size-9 shrink-0 items-center justify-center rounded-full',
-          status.connected ? 'bg-[var(--color-success)] text-white' : 'bg-[var(--color-warning)] text-white',
+          status.connected ? 'bg-[var(--color-success-solid)] text-white' : 'bg-[var(--color-warning-solid)] text-white',
         )}
       >
         {status.connected ? <PlugZap className="size-4" /> : <Plug className="size-4" />}

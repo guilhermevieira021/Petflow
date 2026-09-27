@@ -20,13 +20,13 @@ export function TrialBanner({ billing }: { billing: BillingStatusDto }) {
         <ShieldAlert aria-hidden className="size-4 shrink-0" />
         <p className="flex-1 text-[0.8125rem] font-medium">
           {billing.access.reason === 'TRIAL_EXPIRED'
-            ? 'Seu periodo de teste terminou.'
-            : 'Sua assinatura nao esta ativa.'}{' '}
+            ? 'Seu período de teste terminou.'
+            : 'Sua assinatura não está ativa.'}{' '}
           Seus dados continuam salvos.
         </p>
         <Link
           to="/upgrade"
-          className="shrink-0 rounded-[var(--radius-md)] bg-[var(--color-danger)] px-3 py-1.5 text-[0.8125rem] font-medium text-white hover:opacity-90"
+          className="shrink-0 rounded-[var(--radius-md)] bg-[var(--color-danger-solid)] px-3 py-1.5 text-[0.8125rem] font-medium text-white hover:opacity-90"
         >
           Escolher plano
         </Link>
@@ -42,13 +42,13 @@ export function TrialBanner({ billing }: { billing: BillingStatusDto }) {
       >
         <AlertTriangle aria-hidden className="size-4 shrink-0" />
         <p className="flex-1 text-[0.8125rem] font-medium">
-          Ha um problema com o pagamento do seu plano. Atualize para continuar sem interrupcoes.
+          Há um problema com o pagamento do seu plano. Atualize para continuar sem interrupções.
         </p>
         <Link
           to="/billing"
           className="shrink-0 rounded-[var(--radius-md)] border border-[var(--color-warning)]/40 px-3 py-1.5 text-[0.8125rem] font-medium hover:bg-[var(--color-warning)]/10"
         >
-          Ver cobranca
+          Ver cobrança
         </Link>
       </div>
     );

@@ -6,6 +6,7 @@ import {
   tenantSettingsSchema,
   type OnboardingStep,
   type Tenant,
+  type TenantAppearanceDto,
   type TenantBranding,
   type TenantSettings,
   type UpdateTenantInput,
@@ -142,7 +143,7 @@ export async function getOnboarding(
       label: 'Complete os dados do pet shop',
       done: Boolean(tenant.phone ?? tenant.whatsapp),
     },
-    { key: 'services', label: 'Cadastre seus servicos', done: servicesCount > 0 },
+    { key: 'services', label: 'Cadastre seus serviços', done: servicesCount > 0 },
     { key: 'team', label: 'Adicione sua equipe', done: teamCount > 1 },
     { key: 'customers', label: 'Cadastre seus clientes', done: customersCount > 0 },
     {
@@ -153,4 +154,18 @@ export async function getOnboarding(
   ];
 
   return { completed: steps.every((step) => step.done), steps };
+}
+
+/**
+ * Aparencia do pet shop (tema + cor + logo). Leitura para qualquer usuario
+ * logado: todo mundo ve o sistema no tema escolhido, mas so quem tem
+ * SETTINGS_WRITE altera (PATCH /tenants/current).
+ */
+export async function getAppearance(tx: Transaction, context: TenantContext): Promise<TenantAppearanceDto> {
+  const tenant = await getTenant(tx, context);
+  return {
+    ...tenant.settings.appearance,
+    primaryColor: tenant.primaryColor,
+    logoUrl: tenant.logoUrl,
+  };
 }

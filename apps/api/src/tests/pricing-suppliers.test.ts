@@ -268,7 +268,7 @@ describe('entrada com custo e saida por motivo', () => {
     const movements = await authed(server, shopA.owner, { method: 'GET', url: `/api/inventory/movements?productId=${productId}&pageSize=4` });
     const types = movements.json<{ data: { type: string; reason: string }[] }>().data.map((row) => [row.type, row.reason]);
     expect(types).toEqual([
-      ['OUT', 'Venda registrada fora do caixa (nao entra no Recebido)'],
+      ['OUT', 'Venda registrada fora do caixa (não entra no Recebido)'],
       ['ADJUSTMENT', 'Ajuste'],
       ['DAMAGE', 'Avaria'],
       ['LOSS', 'Perda'],

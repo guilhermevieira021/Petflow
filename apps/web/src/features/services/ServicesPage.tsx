@@ -29,10 +29,10 @@ export function ServicesPage() {
       api.patch<ServiceDto>(`/services/${id}`, { active }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['services'] });
-      toast.success('Servico atualizado.');
+      toast.success('Serviço atualizado.');
     },
     onError: (error) => {
-      toast.error(error instanceof ApiError ? error.message : 'Nao foi possivel atualizar.');
+      toast.error(error instanceof ApiError ? error.message : 'Não foi possível atualizar.');
     },
   });
 
@@ -41,12 +41,12 @@ export function ServicesPage() {
   return (
     <>
       <PageHeader
-        title="Servicos"
-        description="O que voce oferece, quanto dura e quanto custa."
+        title="Serviços"
+        description="O que você oferece, quanto dura e quanto custa."
         action={
           canWrite ? (
             <Button icon={<Plus className="size-4" />} onClick={() => setDrawerService(null)}>
-              Novo servico
+              Novo serviço
             </Button>
           ) : null
         }
@@ -57,7 +57,7 @@ export function ServicesPage() {
       <Card>
         {query.isLoading ? (
           <div className="flex flex-col gap-2 p-4" aria-busy="true">
-            <span className="sr-only">Carregando servicos</span>
+            <span className="sr-only">Carregando serviços</span>
             {Array.from({ length: 4 }, (_, index) => (
               <Skeleton key={index} className="h-12 w-full" />
             ))}
@@ -74,12 +74,12 @@ export function ServicesPage() {
         {query.data && query.data.data.length === 0 ? (
           <EmptyState
             icon={<Scissors className="size-5" />}
-            title="Nenhum servico cadastrado"
-            description="Cadastre os servicos que o seu pet shop oferece."
+            title="Nenhum serviço cadastrado"
+            description="Cadastre os serviços que o seu pet shop oferece."
             action={
               canWrite ? (
                 <Button icon={<Plus className="size-4" />} onClick={() => setDrawerService(null)}>
-                  Cadastrar servico
+                  Cadastrar serviço
                 </Button>
               ) : undefined
             }

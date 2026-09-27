@@ -29,12 +29,12 @@ export type ForgotPasswordInput = z.infer<typeof forgotPasswordInputSchema>;
 
 export const resetPasswordInputSchema = z
   .object({
-    token: z.string().min(1, 'Token de recuperacao invalido.'),
+    token: z.string().min(1, 'Token de recuperação inválido.'),
     password: passwordSchema,
     passwordConfirmation: z.string().min(1, 'Confirme a senha.'),
   })
   .refine((data) => data.password === data.passwordConfirmation, {
-    message: 'As senhas nao conferem.',
+    message: 'As senhas não conferem.',
     path: ['passwordConfirmation'],
   });
 export type ResetPasswordInput = z.infer<typeof resetPasswordInputSchema>;
@@ -46,7 +46,7 @@ export const changePasswordInputSchema = z
     passwordConfirmation: z.string().min(1, 'Confirme a nova senha.'),
   })
   .refine((data) => data.password === data.passwordConfirmation, {
-    message: 'As senhas nao conferem.',
+    message: 'As senhas não conferem.',
     path: ['passwordConfirmation'],
   });
 export type ChangePasswordInput = z.infer<typeof changePasswordInputSchema>;

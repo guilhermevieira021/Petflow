@@ -85,7 +85,7 @@ export async function appointmentsRoutes(app: FastifyInstance): Promise<void> {
       const input = validate(changeAppointmentStatusInputSchema, request.body);
 
       if (input.status === 'CANCELLED' && !hasPermission(auth.user.role, Permission.APPOINTMENTS_CANCEL)) {
-        throw new ForbiddenError('Voce nao possui permissao para cancelar atendimentos.');
+        throw new ForbiddenError('Você não possui permissão para cancelar atendimentos.');
       }
 
       const appointment = await withTenant(auth.context.tenantId, (tx) =>

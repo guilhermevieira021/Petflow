@@ -11,14 +11,14 @@ export const createServiceInputSchema = z
     name: nameSchema,
     description: z.string().trim().max(500).optional().nullable(),
     durationMinutes: z
-      .number({ required_error: 'Informe a duracao do servico.' })
-      .int('A duracao deve ser em minutos inteiros.')
-      .min(5, 'A duracao minima e de 5 minutos.')
-      .max(600, 'A duracao maxima e de 600 minutos.'),
+      .number({ required_error: 'Informe a duração do serviço.' })
+      .int('A duração deve ser em minutos inteiros.')
+      .min(5, 'A duração mínima é de 5 minutos.')
+      .max(600, 'A duração máxima é de 600 minutos.'),
     price: moneySchema,
     color: z
       .string()
-      .regex(/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, 'Informe uma cor valida.')
+      .regex(/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, 'Informe uma cor válida.')
       .optional()
       .nullable(),
   })

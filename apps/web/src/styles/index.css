@@ -65,10 +65,14 @@
   --color-brand-on-ink: color-mix(in oklab, var(--color-brand) 55%, #fff);
 
   /* --- Semanticas ------------------------------------------------------- */
-  --color-success: #0f8a5f;
+  --color-success: #0b7a54;
   --color-success-subtle: #e7f6ef;
   --color-success-on-ink: #4fd6a2;
-  --color-warning: #a86400;
+  /* "-solid": fundo sob texto branco. Nos temas claros = a cor do estado. */
+  --color-success-solid: #0b7a54;
+  --color-warning-solid: #945700;
+  --color-danger-solid: #c0332f;
+  --color-warning: #945700;
   --color-warning-subtle: #fdf3e2;
   --color-danger: #c0332f;
   --color-danger-subtle: #fdeceb;

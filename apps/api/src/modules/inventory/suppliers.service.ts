@@ -76,7 +76,7 @@ async function assertNameAvailable(tx: Transaction, context: TenantContext, name
       ),
     )
     .limit(1);
-  if (existing) throw new ConflictError('Ja existe um fornecedor com este nome.', ErrorCode.CONFLICT);
+  if (existing) throw new ConflictError('Já existe um fornecedor com este nome.', ErrorCode.CONFLICT);
 }
 
 /** Fornecedor associavel a um produto: do proprio tenant e ativo. */

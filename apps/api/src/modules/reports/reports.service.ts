@@ -126,7 +126,7 @@ export async function getReportsOverview(
     topServices = [...byService.entries()]
       .map(([serviceId, entry]) => ({
         serviceId,
-        serviceName: nameById.get(serviceId) ?? 'Servico removido',
+        serviceName: nameById.get(serviceId) ?? 'Serviço removido',
         count: entry.count,
         revenue: Math.round(entry.revenue * 100) / 100,
       }))

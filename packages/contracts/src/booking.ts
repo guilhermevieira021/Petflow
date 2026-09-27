@@ -44,7 +44,7 @@ export const createBookingRequestInputSchema = z
     customerPhone: phoneSchema,
     petName: z.string({ required_error: 'Informe o nome do pet.' }).trim().min(1, 'Informe o nome do pet.').max(80),
     petSpecies: petSpeciesSchema,
-    notes: notesSchema.pipe(z.string().max(500, 'Use no maximo 500 caracteres.').nullable()),
+    notes: notesSchema.pipe(z.string().max(500, 'Use no máximo 500 caracteres.').nullable()),
     /** Honeypot anti-bot: campo invisivel que deve chegar vazio. */
     website: z.string().max(0).optional(),
   })

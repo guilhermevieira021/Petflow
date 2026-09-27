@@ -93,7 +93,7 @@ export function formatTime(iso: string | null | undefined, timeZone?: string): s
 
 export function formatDateTime(iso: string | null | undefined, timeZone?: string): string {
   if (!iso) return '--';
-  return `${formatDate(iso, timeZone)} as ${formatTime(iso, timeZone)}`;
+  return `${formatDate(iso, timeZone)} às ${formatTime(iso, timeZone)}`;
 }
 
 /** "ha 3 dias", "em 2 horas". */

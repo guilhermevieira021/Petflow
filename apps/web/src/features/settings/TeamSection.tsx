@@ -53,7 +53,7 @@ function InviteForm({ onDone }: { onDone: () => void }) {
       // Erros por campo aparecem no proprio input; so os globais viram toast.
       if (!(error instanceof ApiError) || error.fields.length === 0) {
         toast.error(
-          error instanceof ApiError ? error.message : 'Nao foi possivel adicionar o usuario.',
+          error instanceof ApiError ? error.message : 'Não foi possível adicionar o usuário.',
         );
       }
     },
@@ -95,7 +95,7 @@ function InviteForm({ onDone }: { onDone: () => void }) {
           label="Senha provisoria"
           name="password"
           type="password"
-          hint="A pessoa pode troca-la depois em sua conta."
+          hint="A pessoa pode trocá-la depois em sua conta."
           required
           error={apiError?.fieldError('password')}
         />
@@ -145,7 +145,7 @@ export function TeamSection() {
     },
     onError: (error) => {
       toast.error(
-        error instanceof ApiError ? error.message : 'Nao foi possivel atualizar o usuario.',
+        error instanceof ApiError ? error.message : 'Não foi possível atualizar o usuário.',
       );
     },
   });
@@ -154,11 +154,11 @@ export function TeamSection() {
     mutationFn: (id: string) => api.delete<void>(`/users/${id}`),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: TEAM_QUERY_KEY });
-      toast.success('Usuario removido da equipe.');
+      toast.success('Usuário removido da equipe.');
       setPendingRemoval(null);
     },
     onError: (error) => {
-      toast.error(error instanceof ApiError ? error.message : 'Nao foi possivel remover.');
+      toast.error(error instanceof ApiError ? error.message : 'Não foi possível remover.');
       setPendingRemoval(null);
     },
   });
@@ -167,7 +167,7 @@ export function TeamSection() {
     <Card>
       <CardHeader
         title="Membros"
-        description="Papeis conforme cadastrados no sistema."
+        description="Papéis conforme cadastrados no sistema."
         action={
           canManage && !inviting ? (
             <Button size="sm" icon={<UserPlus className="size-4" />} onClick={() => setInviting(true)}>
@@ -204,7 +204,7 @@ export function TeamSection() {
       {query.data && query.data.data.length === 0 ? (
         <EmptyState
           icon={<Users className="size-5" />}
-          title="Nenhum usuario cadastrado"
+          title="Nenhum usuário cadastrado"
           description="Adicione as pessoas que atendem no balcao para que cada uma tenha o seu acesso."
         />
       ) : null}
@@ -223,7 +223,7 @@ export function TeamSection() {
                     {user.name}
                     {isSelf ? (
                       <span className="text-[0.75rem] font-normal text-[var(--color-text-subtle)]">
-                        (voce)
+                        (você)
                       </span>
                     ) : null}
                     {!user.active ? <Badge tone="warning">Inativo</Badge> : null}
@@ -281,7 +281,7 @@ export function TeamSection() {
         title="Remover da equipe?"
         description={
           pendingRemoval
-            ? `${pendingRemoval.name} perde o acesso imediatamente e todas as sessoes abertas sao encerradas. O historico de atendimentos e mantido.`
+            ? `${pendingRemoval.name} perde o acesso imediatamente e todas as sessões abertas são encerradas. O histórico de atendimentos e mantido.`
             : ''
         }
         confirmLabel="Remover acesso"

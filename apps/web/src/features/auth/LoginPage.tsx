@@ -29,7 +29,7 @@ export function LoginPage() {
       // A mensagem vem pronta do backend e ja e deliberadamente generica
       // ("Email ou senha incorretos") para nao revelar quais emails existem.
       setFormError(
-        error instanceof ApiError ? error.message : 'Nao foi possivel entrar. Tente novamente.',
+        error instanceof ApiError ? error.message : 'Não foi possível entrar. Tente novamente.',
       );
     }
   }

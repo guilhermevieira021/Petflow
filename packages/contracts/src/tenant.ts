@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { appearanceSettingsSchema, DEFAULT_APPEARANCE } from './theme.js';
 import {
   emailSchema,
   hexColorSchema,
@@ -29,7 +30,7 @@ export function isTimezone(value: string): value is Timezone {
 }
 
 export const timezoneSchema = z
-  .enum(BRAZIL_TIMEZONES, { errorMap: () => ({ message: 'Fuso horario invalido.' }) })
+  .enum(BRAZIL_TIMEZONES, { errorMap: () => ({ message: 'Fuso horário inválido.' }) })
   .default('America/Sao_Paulo');
 
 export const addressSchema = z
@@ -49,7 +50,7 @@ export const addressSchema = z
     zipCode: z
       .string()
       .transform((value) => value.replace(/\D/g, ''))
-      .refine((value) => value === '' || value.length === 8, 'CEP invalido.')
+      .refine((value) => value === '' || value.length === 8, 'CEP inválido.')
       .optional()
       .nullable(),
   })
@@ -63,8 +64,8 @@ export const tenantSettingsSchema = z
     inactiveCustomerDays: z
       .number()
       .int()
-      .min(7, 'Use no minimo 7 dias.')
-      .max(365, 'Use no maximo 365 dias.')
+      .min(7, 'Use no mínimo 7 dias.')
+      .max(365, 'Use no máximo 365 dias.')
       .default(45),
     /** Horas de antecedencia do lembrete de agendamento. */
     appointmentReminderHours: z
@@ -78,8 +79,8 @@ export const tenantSettingsSchema = z
     /** Horario de funcionamento padrao, usado para validar agendamentos. */
     businessHours: z
       .object({
-        start: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Horario invalido.').default('08:00'),
-        end: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Horario invalido.').default('18:00'),
+        start: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Horário inválido.').default('08:00'),
+        end: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Horário inválido.').default('18:00'),
         /** 0 = domingo ... 6 = sabado */
         weekdays: z.array(z.number().int().min(0).max(6)).default([1, 2, 3, 4, 5, 6]),
       })
@@ -100,6 +101,8 @@ export const tenantSettingsSchema = z
         slotIntervalMinutes: z.number().int().min(10).max(240).default(30),
       })
       .default({ enabled: false, minLeadHours: 2, maxDaysAhead: 30, slotIntervalMinutes: 30 }),
+    /** Tema visual do sistema e origem da cor principal (Configuracoes > Aparencia). */
+    appearance: appearanceSettingsSchema.default(DEFAULT_APPEARANCE),
   })
   .strict();
 export type TenantSettings = z.infer<typeof tenantSettingsSchema>;
@@ -109,7 +112,7 @@ export const DEFAULT_TENANT_SETTINGS: TenantSettings = tenantSettingsSchema.pars
 export const updateTenantInputSchema = z
   .object({
     name: nameSchema.optional(),
-    logoUrl: z.string().trim().url('Informe uma URL valida para o logo.').max(500).optional().nullable(),
+    logoUrl: z.string().trim().url('Informe uma URL válida para o logo.').max(500).optional().nullable(),
     primaryColor: hexColorSchema.optional(),
     phone: optionalPhoneSchema.optional(),
     whatsapp: optionalPhoneSchema.optional(),

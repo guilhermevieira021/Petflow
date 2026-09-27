@@ -21,7 +21,7 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
 };
 
 export const paymentMethodSchema = z.nativeEnum(PaymentMethod, {
-  errorMap: () => ({ message: 'Forma de pagamento invalida.' }),
+  errorMap: () => ({ message: 'Forma de pagamento inválida.' }),
 });
 
 export const PaymentStatus = {
@@ -40,7 +40,7 @@ export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
 };
 
 export const paymentStatusSchema = z.nativeEnum(PaymentStatus, {
-  errorMap: () => ({ message: 'Status de pagamento invalido.' }),
+  errorMap: () => ({ message: 'Status de pagamento inválido.' }),
 });
 
 /**
@@ -76,7 +76,7 @@ export const createPaymentInputSchema = z
   })
   .strict()
   .refine((data) => data.amount !== undefined || !!data.appointmentId, {
-    message: 'Informe o valor do pagamento (ou vincule a um agendamento para herdar o preco).',
+    message: 'Informe o valor do pagamento (ou vincule a um agendamento para herdar o preço).',
     path: ['amount'],
   });
 export type CreatePaymentInput = z.infer<typeof createPaymentInputSchema>;

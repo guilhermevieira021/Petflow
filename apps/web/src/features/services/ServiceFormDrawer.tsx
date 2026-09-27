@@ -29,12 +29,12 @@ export function ServiceFormDrawer({
       await queryClient.invalidateQueries({ queryKey: ['services'] });
       await queryClient.invalidateQueries({ queryKey: ['billing'] });
       await queryClient.invalidateQueries({ queryKey: ['session'] });
-      toast.success(isEditing ? 'Servico atualizado.' : 'Servico cadastrado.');
+      toast.success(isEditing ? 'Serviço atualizado.' : 'Serviço cadastrado.');
       onClose();
     },
     onError: (error) => {
       if (!(error instanceof ApiError) || error.fields.length === 0) {
-        toast.error(error instanceof ApiError ? error.message : 'Nao foi possivel salvar.');
+        toast.error(error instanceof ApiError ? error.message : 'Não foi possível salvar.');
       }
     },
   });
@@ -53,7 +53,7 @@ export function ServiceFormDrawer({
   const apiError = mutation.error instanceof ApiError ? mutation.error : null;
 
   return (
-    <Drawer open={open} onClose={onClose} title={isEditing ? 'Editar servico' : 'Novo servico'}>
+    <Drawer open={open} onClose={onClose} title={isEditing ? 'Editar serviço' : 'Novo serviço'}>
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
         <TextField
           label="Nome"
@@ -64,10 +64,10 @@ export function ServiceFormDrawer({
           autoFocus
           error={apiError?.fieldError('name')}
         />
-        <TextAreaField label="Descricao" name="description" defaultValue={service?.description ?? ''} error={apiError?.fieldError('description')} />
+        <TextAreaField label="Descrição" name="description" defaultValue={service?.description ?? ''} error={apiError?.fieldError('description')} />
         <div className="grid grid-cols-2 gap-4">
           <TextField
-            label="Duracao (min)"
+            label="Duração (min)"
             name="durationMinutes"
             type="number"
             min={5}
@@ -77,7 +77,7 @@ export function ServiceFormDrawer({
             error={apiError?.fieldError('durationMinutes')}
           />
           <TextField
-            label="Preco (R$)"
+            label="Preço (R$)"
             name="price"
             type="number"
             min={0}
@@ -93,7 +93,7 @@ export function ServiceFormDrawer({
             Cancelar
           </Button>
           <Button type="submit" loading={mutation.isPending}>
-            {isEditing ? 'Salvar alteracoes' : 'Cadastrar servico'}
+            {isEditing ? 'Salvar alterações' : 'Cadastrar serviço'}
           </Button>
         </div>
       </form>

@@ -27,8 +27,8 @@ export const LIMIT_KEY_LABELS: Record<LimitKey, string> = {
   customers: 'Clientes',
   pets: 'Pets',
   appointments: 'Agendamentos',
-  services: 'Servicos',
-  users: 'Usuarios',
+  services: 'Serviços',
+  users: 'Usuários',
 };
 
 /** Recursos liga/desliga por plano -- checados via hasFeature(), nunca `if (plan === 'PRO')`. */
@@ -40,9 +40,9 @@ export const FeatureKey = {
 export type FeatureKey = (typeof FeatureKey)[keyof typeof FeatureKey];
 
 export const FEATURE_LABELS: Record<FeatureKey, string> = {
-  advanced_reports: 'Relatorios avancados',
-  automation: 'Automacao de mensagens',
-  unlimited_retention_window: 'Recuperacao de clientes sem limite de periodo',
+  advanced_reports: 'Relatórios avançados',
+  automation: 'Automação de mensagens',
+  unlimited_retention_window: 'Recuperação de clientes sem limite de período',
 };
 
 export type PlanLimits = Record<LimitKey, number | null>;

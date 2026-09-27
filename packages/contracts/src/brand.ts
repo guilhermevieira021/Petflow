@@ -31,14 +31,14 @@ export const BRAND_SEGMENT_LABELS: Record<BrandSegment, string> = {
 };
 
 export const brandSegmentSchema = z.nativeEnum(BrandSegment, {
-  errorMap: () => ({ message: 'Segmento invalido.' }),
+  errorMap: () => ({ message: 'Segmento inválido.' }),
 });
 
 const brandNameSchema = z
   .string({ required_error: 'Informe o nome da marca.' })
   .trim()
   .min(1, 'Informe o nome da marca.')
-  .max(80, 'O nome deve ter no maximo 80 caracteres.');
+  .max(80, 'O nome deve ter no máximo 80 caracteres.');
 
 export const createBrandInputSchema = z
   .object({

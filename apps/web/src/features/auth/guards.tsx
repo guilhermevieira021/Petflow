@@ -12,7 +12,7 @@ function FullPageLoader() {
       aria-busy="true"
       aria-live="polite"
     >
-      <span className="sr-only">Carregando sua sessao</span>
+      <span className="sr-only">Carregando sua sessão</span>
       <div className="flex flex-col items-center gap-3">
         <div className="skeleton size-10 rounded-[var(--radius-lg)]" />
         <div className="skeleton h-3 w-28 rounded-full" />
@@ -66,8 +66,8 @@ export function RequirePermission({
     return (
       <EmptyState
         icon={<ShieldAlert className="size-5" />}
-        title="Voce nao tem acesso a esta area"
-        description="Fale com o responsavel pelo pet shop se precisar destas informacoes."
+        title="Você não tem acesso a esta área"
+        description="Fale com o responsável pelo pet shop se precisar destas informações."
       />
     );
   }

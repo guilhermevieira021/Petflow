@@ -57,7 +57,7 @@ export function HealthDueCard() {
               <button
                 type="button"
                 onClick={() => setComposer(item)}
-                className="flex shrink-0 items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-success)] px-3 py-2 text-[0.8125rem] font-medium text-white hover:opacity-90"
+                className="flex shrink-0 items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-success-solid)] px-3 py-2 text-[0.8125rem] font-medium text-white hover:opacity-90"
               >
                 <MessageCircle aria-hidden className="size-3.5" />
                 Avisar tutor

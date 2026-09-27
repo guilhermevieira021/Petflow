@@ -198,7 +198,7 @@ export async function createCustomer(
       .where(and(eq(customers.tenantId, context.tenantId), eq(customers.cpf, input.cpf), isNull(customers.deletedAt)))
       .limit(1);
     if (existing) {
-      throw new ConflictError('Ja existe um cliente cadastrado com este CPF.');
+      throw new ConflictError('Já existe um cliente cadastrado com este CPF.');
     }
   }
 
@@ -238,7 +238,7 @@ export async function updateCustomer(
   await assertCustomerExists(tx, context, customerId);
 
   if (input.active === false && !hasPermission(actorRole, Permission.CUSTOMERS_DELETE)) {
-    throw new ForbiddenError('Voce nao possui permissao para desativar clientes.');
+    throw new ForbiddenError('Você não possui permissão para desativar clientes.');
   }
   if (Object.keys(input).some((key) => key !== 'active')) {
     await assertActiveAccess(tx, context);
@@ -257,7 +257,7 @@ export async function updateCustomer(
         ),
       )
       .limit(1);
-    if (existing) throw new ConflictError('Ja existe um cliente cadastrado com este CPF.');
+    if (existing) throw new ConflictError('Já existe um cliente cadastrado com este CPF.');
   }
 
   const patch: Partial<typeof customers.$inferInsert> = {};

@@ -200,7 +200,7 @@ export function ErrorState({
 }) {
   return (
     <div role="alert" className="flex flex-col items-center px-6 py-12 text-center">
-      <h3 className="text-[0.9375rem] font-semibold">Nao foi possivel carregar</h3>
+      <h3 className="text-[0.9375rem] font-semibold">Não foi possível carregar</h3>
       <p className="mt-1 max-w-sm text-sm text-[var(--color-text-muted)]">{message}</p>
       {onRetry ? (
         <button

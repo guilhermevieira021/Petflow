@@ -175,7 +175,7 @@ export async function changePaymentStatus(
 
   if (!canTransitionPayment(current.status, input.status)) {
     throw new ConflictError(
-      `Nao e possivel mudar de "${current.status}" para "${input.status}".`,
+      `Não é possível mudar de "${current.status}" para "${input.status}".`,
       ErrorCode.INVALID_STATUS_TRANSITION,
     );
   }

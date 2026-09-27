@@ -89,8 +89,8 @@ async function assertNameAvailable(tx: Transaction, context: TenantContext, name
   if (existing) {
     throw new ConflictError(
       existing.tenantId === null
-        ? `A marca "${existing.name}" ja existe no catalogo de referencia. Use-a nos produtos.`
-        : `Voce ja cadastrou a marca "${existing.name}".`,
+        ? `A marca "${existing.name}" já existe no catálogo de referência. Use-a nos produtos.`
+        : `Você já cadastrou a marca "${existing.name}".`,
       ErrorCode.CONFLICT,
     );
   }
@@ -124,7 +124,7 @@ export async function updateBrand(
   await assertActiveAccess(tx, context);
   const { brand } = await findVisibleBrand(tx, context, brandId);
   if (brand.tenantId === null) {
-    throw new BusinessRuleError('Marcas do catalogo de referencia nao podem ser alteradas. Cadastre uma marca propria.');
+    throw new BusinessRuleError('Marcas do catálogo de referência não podem ser alteradas. Cadastre uma marca própria.');
   }
   if (input.name !== undefined) await assertNameAvailable(tx, context, input.name, brandId);
 

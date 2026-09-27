@@ -98,9 +98,9 @@ async function lockPending(tx: Transaction, context: TenantContext, requestId: s
     .where(and(eq(bookingRequests.id, requestId), eq(bookingRequests.tenantId, context.tenantId)))
     .limit(1)
     .for('update');
-  if (!row) throw new NotFoundError('Solicitacao');
+  if (!row) throw new NotFoundError('Solicitação');
   if (row.status !== 'PENDING') {
-    throw new ConflictError('Esta solicitacao ja foi respondida.', ErrorCode.INVALID_STATUS_TRANSITION);
+    throw new ConflictError('Esta solicitação já foi respondida.', ErrorCode.INVALID_STATUS_TRANSITION);
   }
   return row;
 }
@@ -144,7 +144,7 @@ export async function acceptBookingRequest(
       petId,
       serviceId: request.serviceId,
       startsAt: request.startsAt.toISOString(),
-      notes: request.notes ? `Solicitado pelo link publico: ${request.notes}` : 'Solicitado pelo link publico.',
+      notes: request.notes ? `Solicitado pelo link público: ${request.notes}` : 'Solicitado pelo link público.',
     }),
   );
 

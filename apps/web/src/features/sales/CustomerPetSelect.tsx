@@ -51,7 +51,7 @@ export function CustomerPetSelect({
               onPetChange('');
             }}
             aria-label="Remover cliente da venda"
-            className="flex size-8 shrink-0 items-center justify-center rounded-full text-[var(--color-text-muted)] hover:bg-white/70"
+            className="flex size-8 shrink-0 items-center justify-center rounded-full text-[var(--color-text-muted)] hover:bg-[var(--color-surface)]"
           >
             <X aria-hidden className="size-4" />
           </button>

@@ -7,13 +7,13 @@ const supplierNameSchema = z
   .string({ required_error: 'Informe o nome do fornecedor.' })
   .trim()
   .min(2, 'O nome deve ter ao menos 2 caracteres.')
-  .max(120, 'O nome deve ter no maximo 120 caracteres.');
+  .max(120, 'O nome deve ter no máximo 120 caracteres.');
 
 const documentSchema = z
   .string()
   .trim()
   .transform((value) => value.replace(/\D/g, ''))
-  .refine((digits) => digits === '' || digits.length === 11 || digits.length === 14, 'Informe um CPF (11) ou CNPJ (14 digitos).')
+  .refine((digits) => digits === '' || digits.length === 11 || digits.length === 14, 'Informe um CPF (11) ou CNPJ (14 dígitos).')
   .transform((digits) => (digits === '' ? null : digits))
   .optional()
   .nullable();

@@ -145,7 +145,7 @@ async function assertNoConflict(
 
   if (conflict) {
     throw new ConflictError(
-      'Esse horario ja esta ocupado. Escolha outro horario.',
+      'Esse horário já está ocupado. Escolha outro horário.',
       ErrorCode.TIME_SLOT_TAKEN,
     );
   }
@@ -213,7 +213,7 @@ export async function getAppointment(
 function assertNotInPast(startsAt: Date, allowPast: boolean): void {
   if (!allowPast && startsAt.getTime() < Date.now() - 60_000) {
     throw new BusinessRuleError(
-      'Nao e possivel agendar em um horario no passado. Marque "permitir horario passado" para um lancamento retroativo.',
+      'Não é possível agendar em um horário no passado. Marque "permitir horário passado" para um lançamento retroativo.',
     );
   }
 }
@@ -240,7 +240,7 @@ export async function createAppointment(
     : new Date(startsAt.getTime() + service.durationMinutes * 60_000);
 
   if (endsAt.getTime() <= startsAt.getTime()) {
-    throw new BusinessRuleError('O horario de termino deve ser depois do horario de inicio.');
+    throw new BusinessRuleError('O horário de término deve ser depois do horário de início.');
   }
 
   await acquireTransactionLock(tx, lockKey(context, input.professionalId ?? null));
@@ -300,7 +300,7 @@ export async function updateAppointment(
 
   if (!BLOCKING_STATUSES.includes(current.status)) {
     throw new BusinessRuleError(
-      'Nao e possivel editar um atendimento ja concluido, cancelado ou marcado como falta.',
+      'Não é possível editar um atendimento já concluído, cancelado ou marcado como falta.',
     );
   }
 
@@ -336,7 +336,7 @@ export async function updateAppointment(
       ? new Date(startsAt.getTime() + (current.endsAt.getTime() - current.startsAt.getTime()))
       : current.endsAt;
   if (endsAt.getTime() <= startsAt.getTime()) {
-    throw new BusinessRuleError('O horario de termino deve ser depois do horario de inicio.');
+    throw new BusinessRuleError('O horário de término deve ser depois do horário de início.');
   }
 
   const timeOrProfessionalChanged =
@@ -405,7 +405,7 @@ export async function changeAppointmentStatus(
 
   if (!canTransition(current.status, input.status)) {
     throw new ConflictError(
-      `Nao e possivel mudar de "${current.status}" para "${input.status}".`,
+      `Não é possível mudar de "${current.status}" para "${input.status}".`,
       ErrorCode.INVALID_STATUS_TRANSITION,
     );
   }

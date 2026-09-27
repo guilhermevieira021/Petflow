@@ -27,7 +27,7 @@ export function registerErrorHandler(app: FastifyInstance): void {
     const body: ApiErrorBody = {
       error: {
         code: ErrorCode.NOT_FOUND,
-        message: 'Recurso nao encontrado.',
+        message: 'Recurso não encontrado.',
         requestId: request.id,
       },
     };
@@ -87,7 +87,7 @@ export function registerErrorHandler(app: FastifyInstance): void {
       const body: ApiErrorBody = {
         error: {
           code: ErrorCode.BAD_REQUEST,
-          message: 'Requisicao invalida.',
+          message: 'Requisição inválida.',
           requestId: request.id,
         },
       };
@@ -96,7 +96,7 @@ export function registerErrorHandler(app: FastifyInstance): void {
 
     // 5. Qualquer outra coisa e bug nosso. Log completo no servidor,
     //    mensagem generica para o cliente.
-    request.log.error({ err: error }, 'Erro nao tratado');
+    request.log.error({ err: error }, 'Erro não tratado');
 
     const body: ApiErrorBody = {
       error: {

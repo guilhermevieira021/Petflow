@@ -3,6 +3,7 @@ export * from './errors.js';
 export * from './rbac.js';
 export * from './billing.js';
 export * from './auth.js';
+export * from './theme.js';
 export * from './tenant.js';
 export * from './user.js';
 export * from './customer.js';

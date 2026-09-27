@@ -28,7 +28,7 @@ export const PET_SPECIES_LABELS: Record<PetSpecies, string> = {
 };
 
 export const petSpeciesSchema = z.nativeEnum(PetSpecies, {
-  errorMap: () => ({ message: 'Informe uma especie valida.' }),
+  errorMap: () => ({ message: 'Informe uma espécie válida.' }),
 });
 
 export const PetSex = { MALE: 'MALE', FEMALE: 'FEMALE', UNKNOWN: 'UNKNOWN' } as const;
@@ -37,11 +37,11 @@ export type PetSex = (typeof PetSex)[keyof typeof PetSex];
 export const PET_SEX_LABELS: Record<PetSex, string> = {
   MALE: 'Macho',
   FEMALE: 'Femea',
-  UNKNOWN: 'Nao informado',
+  UNKNOWN: 'Não informado',
 };
 
 export const petSexSchema = z
-  .nativeEnum(PetSex, { errorMap: () => ({ message: 'Informe um sexo valido.' }) })
+  .nativeEnum(PetSex, { errorMap: () => ({ message: 'Informe um sexo válido.' }) })
   .default('UNKNOWN');
 
 export const createPetInputSchema = z
@@ -49,7 +49,7 @@ export const createPetInputSchema = z
     customerId: uuidSchema,
     name: nameSchema,
     species: petSpeciesSchema,
-    breed: z.string().trim().max(80, 'Raca deve ter no maximo 80 caracteres.').optional().nullable(),
+    breed: z.string().trim().max(80, 'Raça deve ter no máximo 80 caracteres.').optional().nullable(),
     sex: petSexSchema.optional(),
     birthDate: isoDateSchema.optional().nullable(),
     weightKg: z

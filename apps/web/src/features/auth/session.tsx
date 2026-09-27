@@ -42,23 +42,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setCsrfToken(session?.csrfToken ?? null);
   }, [session?.csrfToken]);
 
-  /**
-   * White-label: a cor do tenant vira o token --color-brand, e todos os tons
-   * derivados (hover, fundo suave, borda) recalculam sozinhos via color-mix.
-   */
-  useEffect(() => {
-    const root = document.documentElement;
-    if (session?.tenant.primaryColor) {
-      root.style.setProperty('--color-brand', session.tenant.primaryColor);
-    } else {
-      root.style.removeProperty('--color-brand');
-    }
-  }, [session?.tenant.primaryColor]);
+  // White-label (cor do tenant) e tema: aplicados pelo ThemeProvider
+  // (features/theme), que combina o tema escolhido com a cor propria.
 
   useEffect(() => {
     document.title = session?.tenant.name
       ? `${session.tenant.name} - PetFlow`
-      : 'PetFlow - Gestao para pet shops';
+      : 'PetFlow - Gestão para pet shops';
   }, [session?.tenant.name]);
 
   const permissions = useMemo(
@@ -107,7 +97,7 @@ export function useSession(): SessionContextValue {
 export function useCurrentSession(): SessionPayload {
   const { session } = useSession();
   if (!session) {
-    throw new Error('Nenhuma sessao ativa neste ponto da arvore.');
+    throw new Error('Nenhuma sessão ativa neste ponto da árvore.');
   }
   return session;
 }

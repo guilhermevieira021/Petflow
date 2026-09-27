@@ -57,7 +57,7 @@ function PlanPrice({ plan }: { plan: PlanDto }) {
     <p className="text-3xl font-semibold tracking-tight">
       {formatMoney(plan.priceCents / 100)}
       {plan.billingPeriod === 'MONTHLY' ? (
-        <span className="ml-1 text-base font-normal text-[var(--color-text-muted)]">/mes</span>
+        <span className="ml-1 text-base font-normal text-[var(--color-text-muted)]">/mês</span>
       ) : null}
     </p>
   );
@@ -121,7 +121,7 @@ function PlanCTA({ plan }: { plan: PlanDto }) {
       toast.info(result.message);
       navigate('/billing');
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Nao foi possivel iniciar o checkout.');
+      toast.error(error instanceof ApiError ? error.message : 'Não foi possível iniciar o checkout.');
     } finally {
       setLoading(false);
     }

@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router-dom';
 import { ToastProvider } from '@/components/ui/Toast';
 import { SessionProvider } from '@/features/auth/session';
+import { ThemeProvider } from '@/features/theme/ThemeProvider';
 import { ApiError } from '@/lib/api';
 import { router } from '@/router';
 import '@/styles/index.css';
@@ -26,7 +27,7 @@ const queryClient = new QueryClient({
 
 const container = document.getElementById('root');
 if (!container) {
-  throw new Error('Elemento #root nao encontrado no documento.');
+  throw new Error('Elemento #root não encontrado no documento.');
 }
 
 createRoot(container).render(
@@ -34,7 +35,9 @@ createRoot(container).render(
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
         <SessionProvider>
-          <RouterProvider router={router} />
+          <ThemeProvider>
+            <RouterProvider router={router} />
+          </ThemeProvider>
         </SessionProvider>
       </ToastProvider>
     </QueryClientProvider>

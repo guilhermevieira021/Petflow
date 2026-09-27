@@ -19,16 +19,16 @@ export const AppointmentStatus = {
 export type AppointmentStatus = (typeof AppointmentStatus)[keyof typeof AppointmentStatus];
 
 export const appointmentStatusSchema = z.nativeEnum(AppointmentStatus, {
-  errorMap: () => ({ message: 'Status de agendamento invalido.' }),
+  errorMap: () => ({ message: 'Status de agendamento inválido.' }),
 });
 
 export const APPOINTMENT_STATUS_LABELS: Record<AppointmentStatus, string> = {
   SCHEDULED: 'Agendado',
   CONFIRMED: 'Confirmado',
   IN_PROGRESS: 'Em atendimento',
-  COMPLETED: 'Concluido',
+  COMPLETED: 'Concluído',
   CANCELLED: 'Cancelado',
-  NO_SHOW: 'Nao compareceu',
+  NO_SHOW: 'Não compareceu',
 };
 
 /**

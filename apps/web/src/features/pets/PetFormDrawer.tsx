@@ -44,7 +44,7 @@ export function PetFormDrawer({
     },
     onError: (error) => {
       if (!(error instanceof ApiError) || error.fields.length === 0) {
-        toast.error(error instanceof ApiError ? error.message : 'Nao foi possivel salvar.');
+        toast.error(error instanceof ApiError ? error.message : 'Não foi possível salvar.');
       }
     },
   });
@@ -86,12 +86,12 @@ export function PetFormDrawer({
         <TextField label="Nome" name="name" defaultValue={pet?.name} required autoFocus error={apiError?.fieldError('name')} />
 
         <div className="grid grid-cols-2 gap-4">
-          <SelectField label="Especie" name="species" defaultValue={pet?.species ?? 'DOG'} options={SPECIES_OPTIONS} error={apiError?.fieldError('species')} />
+          <SelectField label="Espécie" name="species" defaultValue={pet?.species ?? 'DOG'} options={SPECIES_OPTIONS} error={apiError?.fieldError('species')} />
           <SelectField label="Sexo" name="sex" defaultValue={pet?.sex ?? 'UNKNOWN'} options={SEX_OPTIONS} />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <TextField label="Raca" name="breed" defaultValue={pet?.breed ?? ''} />
+          <TextField label="Raça" name="breed" defaultValue={pet?.breed ?? ''} />
           <TextField label="Cor" name="color" defaultValue={pet?.color ?? ''} />
         </div>
 
@@ -100,14 +100,14 @@ export function PetFormDrawer({
           <TextField label="Nascimento" name="birthDate" type="date" defaultValue={pet?.birthDate ?? ''} />
         </div>
 
-        <TextAreaField label="Observacoes" name="notes" defaultValue={pet?.notes ?? ''} />
+        <TextAreaField label="Observações" name="notes" defaultValue={pet?.notes ?? ''} />
 
         <div className="mt-2 flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>
             Cancelar
           </Button>
           <Button type="submit" loading={mutation.isPending} disabled={!isEditing && !selectedCustomerId}>
-            {isEditing ? 'Salvar alteracoes' : 'Cadastrar pet'}
+            {isEditing ? 'Salvar alterações' : 'Cadastrar pet'}
           </Button>
         </div>
       </form>

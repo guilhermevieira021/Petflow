@@ -39,7 +39,7 @@ export function AppointmentStatusActions({ appointment }: { appointment: Appoint
       setConfirmCancel(false);
     },
     onError: (error) => {
-      toast.error(error instanceof ApiError ? error.message : 'Nao foi possivel atualizar.');
+      toast.error(error instanceof ApiError ? error.message : 'Não foi possível atualizar.');
       setConfirmCancel(false);
     },
   });
@@ -81,7 +81,7 @@ export function AppointmentStatusActions({ appointment }: { appointment: Appoint
       <ConfirmDialog
         open={confirmCancel}
         title="Cancelar agendamento?"
-        description={`O horario de ${appointment.petName} com ${appointment.customerName} sera liberado.`}
+        description={`O horário de ${appointment.petName} com ${appointment.customerName} será liberado.`}
         confirmLabel="Cancelar agendamento"
         destructive
         loading={mutation.isPending}

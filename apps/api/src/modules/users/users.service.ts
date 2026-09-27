@@ -110,7 +110,7 @@ export async function getUser(
 
   // Usuario de outro tenant cai aqui como 404, e nao 403: um 403 confirmaria
   // que o id existe e permitiria enumerar registros alheios.
-  if (!row) throw new NotFoundError('Usuario');
+  if (!row) throw new NotFoundError('Usuário');
   return toDto(row);
 }
 
@@ -121,7 +121,7 @@ export async function createUser(
   input: CreateUserInput,
 ): Promise<UserDto> {
   if (!canManageRole(actorRole, input.role)) {
-    throw new ForbiddenError('Voce nao pode criar um usuario com papel superior ao seu.');
+    throw new ForbiddenError('Você não pode criar um usuário com papel superior ao seu.');
   }
 
   await assertActiveAccess(tx, context);
@@ -135,7 +135,7 @@ export async function createUser(
 
   if (existing) {
     throw new ConflictError(
-      'Este email ja esta em uso por outro usuario.',
+      'Este email já está em uso por outro usuário.',
       ErrorCode.EMAIL_ALREADY_USED,
     );
   }
@@ -151,7 +151,7 @@ export async function createUser(
     })
     .returning(PUBLIC_COLUMNS);
 
-  if (!row) throw new Error('Falha ao criar usuario.');
+  if (!row) throw new Error('Falha ao criar usuário.');
 
   await recordAudit(tx, context, {
     action: AuditAction.USER_CREATED,
@@ -173,20 +173,20 @@ export async function updateUser(
   const target = await getUser(tx, context, userId);
 
   if (!canManageRole(actorRole, target.role)) {
-    throw new ForbiddenError('Voce nao pode alterar um usuario com papel superior ao seu.');
+    throw new ForbiddenError('Você não pode alterar um usuário com papel superior ao seu.');
   }
   if (input.role && !canManageRole(actorRole, input.role)) {
-    throw new ForbiddenError('Voce nao pode atribuir um papel superior ao seu.');
+    throw new ForbiddenError('Você não pode atribuir um papel superior ao seu.');
   }
 
   const isSelf = target.id === context.userId;
   // Sem estas duas travas, um OWNER consegue rebaixar-se ou desativar-se e
   // deixar o pet shop sem ninguem capaz de administrar a conta.
   if (isSelf && input.role && input.role !== target.role) {
-    throw new ForbiddenError('Voce nao pode alterar o seu proprio papel.');
+    throw new ForbiddenError('Você não pode alterar o seu próprio papel.');
   }
   if (isSelf && input.active === false) {
-    throw new ForbiddenError('Voce nao pode desativar o seu proprio acesso.');
+    throw new ForbiddenError('Você não pode desativar o seu próprio acesso.');
   }
 
   const losingOwner =
@@ -236,10 +236,10 @@ export async function deleteUser(
   const target = await getUser(tx, context, userId);
 
   if (target.id === context.userId) {
-    throw new ForbiddenError('Voce nao pode excluir o seu proprio usuario.');
+    throw new ForbiddenError('Você não pode excluir o seu próprio usuário.');
   }
   if (!canManageRole(actorRole, target.role)) {
-    throw new ForbiddenError('Voce nao pode excluir um usuario com papel superior ao seu.');
+    throw new ForbiddenError('Você não pode excluir um usuário com papel superior ao seu.');
   }
   if (target.role === 'OWNER') {
     await assertAnotherActiveOwnerExists(tx, context, target.id);
@@ -286,7 +286,7 @@ async function assertAnotherActiveOwnerExists(
 
   if (toCount(row?.value) === 0) {
     throw new ConflictError(
-      'O pet shop precisa ter ao menos um proprietario ativo. Promova outro usuario antes de continuar.',
+      'O pet shop precisa ter ao menos um proprietário ativo. Promova outro usuário antes de continuar.',
     );
   }
 }

@@ -47,7 +47,7 @@ export function MessageComposerDrawer({
       onClose();
     },
     onError: (error) => {
-      toast.error(error instanceof ApiError ? error.message : 'Nao foi possivel registrar a mensagem.');
+      toast.error(error instanceof ApiError ? error.message : 'Não foi possível registrar a mensagem.');
     },
   });
 
@@ -70,7 +70,7 @@ export function MessageComposerDrawer({
 
         {!customerWhatsapp ? (
           <p className="rounded-[var(--radius-md)] border border-[var(--color-warning)]/25 bg-[var(--color-warning-subtle)] px-3.5 py-2.5 text-[0.8125rem] text-[var(--color-warning)]">
-            Este cliente nao tem WhatsApp cadastrado. A mensagem sera registrada, mas nenhum link sera aberto.
+            Este cliente não tem WhatsApp cadastrado. A mensagem será registrada, mas nenhum link será aberto.
           </p>
         ) : null}
 

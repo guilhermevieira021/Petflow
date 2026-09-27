@@ -73,7 +73,7 @@ async function loadActiveService(tx: Transaction, tenantId: string, serviceId: s
     .from(services)
     .where(and(eq(services.id, serviceId), eq(services.tenantId, tenantId), eq(services.active, true), isNull(services.deletedAt)))
     .limit(1);
-  if (!service) throw new NotFoundError('Servico');
+  if (!service) throw new NotFoundError('Serviço');
   return service;
 }
 
@@ -163,7 +163,7 @@ export async function createBookingRequest(
   meta: { ipAddress?: string | null; userAgent?: string | null; requestId?: string | null },
 ): Promise<PublicBookingRequestResultDto> {
   // Honeypot: campo invisivel preenchido = robo. Resposta generica.
-  if (input.website) throw new BadRequestError('Nao foi possivel registrar a solicitacao.');
+  if (input.website) throw new BadRequestError('Não foi possível registrar a solicitação.');
 
   await assertAvailable(tx, tenantId);
   const tenant = await loadTenant(tx, tenantId);
@@ -184,7 +184,7 @@ export async function createBookingRequest(
   }).format(startsAt);
   const availability = await getAvailability(tx, tenantId, { serviceId: service.id, date: localDate });
   if (!availability.slots.includes(startsAt.toISOString())) {
-    throw new BusinessRuleError('Este horario nao esta mais disponivel. Escolha outro horario.');
+    throw new BusinessRuleError('Este horário não está mais disponível. Escolha outro horário.');
   }
 
   const [row] = await tx
@@ -201,7 +201,7 @@ export async function createBookingRequest(
       notes: input.notes,
     })
     .returning({ id: bookingRequests.id });
-  if (!row) throw new Error('Falha ao registrar solicitacao.');
+  if (!row) throw new Error('Falha ao registrar solicitação.');
 
   await recordAnonymousAudit(
     tx,
@@ -218,6 +218,6 @@ export async function createBookingRequest(
     status: 'PENDING',
     startsAt: startsAt.toISOString(),
     serviceName: service.name,
-    message: `Solicitacao enviada para ${tenant.name}. O pet shop vai confirmar o horario com voce.`,
+    message: `Solicitação enviada para ${tenant.name}. O pet shop vai confirmar o horário com você.`,
   };
 }

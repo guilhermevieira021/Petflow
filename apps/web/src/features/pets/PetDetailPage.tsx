@@ -130,7 +130,7 @@ export function PetDetailPage() {
       toast.success('Pet desativado.');
       setConfirmDeactivate(false);
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Nao foi possivel desativar.');
+      toast.error(error instanceof ApiError ? error.message : 'Não foi possível desativar.');
     } finally {
       setDeactivating(false);
     }
@@ -150,7 +150,7 @@ export function PetDetailPage() {
     return (
       <Card>
         <ErrorState
-          message={petQuery.error instanceof ApiError ? petQuery.error.message : 'Nao foi possivel carregar este pet.'}
+          message={petQuery.error instanceof ApiError ? petQuery.error.message : 'Não foi possível carregar este pet.'}
           onRetry={() => void petQuery.refetch()}
         />
       </Card>

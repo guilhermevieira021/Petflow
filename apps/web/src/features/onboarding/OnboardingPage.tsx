@@ -87,7 +87,7 @@ export function OnboardingPage() {
       toast.success('Dados da empresa salvos.');
       goNext();
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Nao foi possivel salvar.');
+      toast.error(error instanceof ApiError ? error.message : 'Não foi possível salvar.');
     } finally {
       setSaving(false);
     }
@@ -104,10 +104,10 @@ export function OnboardingPage() {
         price: Number(data.get('price') ?? 0),
       });
       setState((current) => ({ ...current, serviceId: service.id }));
-      toast.success('Servico cadastrado.');
+      toast.success('Serviço cadastrado.');
       goNext();
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Nao foi possivel salvar.');
+      toast.error(error instanceof ApiError ? error.message : 'Não foi possível salvar.');
     } finally {
       setSaving(false);
     }
@@ -127,10 +127,10 @@ export function OnboardingPage() {
           },
         },
       });
-      toast.success('Horario de funcionamento salvo.');
+      toast.success('Horário de funcionamento salvo.');
       goNext();
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Nao foi possivel salvar.');
+      toast.error(error instanceof ApiError ? error.message : 'Não foi possível salvar.');
     } finally {
       setSaving(false);
     }
@@ -149,7 +149,7 @@ export function OnboardingPage() {
       toast.success('Cliente cadastrado.');
       goNext();
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Nao foi possivel salvar.');
+      toast.error(error instanceof ApiError ? error.message : 'Não foi possível salvar.');
     } finally {
       setSaving(false);
     }
@@ -173,7 +173,7 @@ export function OnboardingPage() {
       toast.success('Pet cadastrado.');
       goNext();
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Nao foi possivel salvar.');
+      toast.error(error instanceof ApiError ? error.message : 'Não foi possível salvar.');
     } finally {
       setSaving(false);
     }
@@ -182,7 +182,7 @@ export function OnboardingPage() {
   async function handleAppointment(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     if (!state.customerId || !state.petId || !state.serviceId) {
-      toast.error('Complete os passos de servico, cliente e pet antes de agendar.');
+      toast.error('Complete os passos de serviço, cliente e pet antes de agendar.');
       return;
     }
     setSaving(true);
@@ -199,7 +199,7 @@ export function OnboardingPage() {
       toast.success('Primeiro agendamento criado!');
       goNext();
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Nao foi possivel agendar.');
+      toast.error(error instanceof ApiError ? error.message : 'Não foi possível agendar.');
     } finally {
       setSaving(false);
     }
@@ -244,12 +244,12 @@ export function OnboardingPage() {
         ) : null}
 
         {step === 2 ? (
-          <StepShell step={2} title="Cadastre seu primeiro servico" description="O que voce oferece, quanto dura e quanto custa." onSkip={goNext}>
+          <StepShell step={2} title="Cadastre seu primeiro serviço" description="O que você oferece, quanto dura e quanto custa." onSkip={goNext}>
             <form onSubmit={handleService} className="flex flex-col gap-4">
-              <TextField label="Nome do servico" name="name" placeholder="Banho e Tosa" required autoFocus />
+              <TextField label="Nome do serviço" name="name" placeholder="Banho e Tosa" required autoFocus />
               <div className="grid grid-cols-2 gap-4">
-                <TextField label="Duracao (min)" name="durationMinutes" type="number" min={5} defaultValue={60} required />
-                <TextField label="Preco (R$)" name="price" type="number" min={0} step="0.01" defaultValue={50} required />
+                <TextField label="Duração (min)" name="durationMinutes" type="number" min={5} defaultValue={60} required />
+                <TextField label="Preço (R$)" name="price" type="number" min={0} step="0.01" defaultValue={50} required />
               </div>
               <Button type="submit" loading={saving} className="w-full">
                 Salvar e continuar
@@ -259,7 +259,7 @@ export function OnboardingPage() {
         ) : null}
 
         {step === 3 ? (
-          <StepShell step={3} title="Horario de funcionamento" description="Usado para orientar a agenda." onSkip={goNext}>
+          <StepShell step={3} title="Horário de funcionamento" description="Usado para orientar a agenda." onSkip={goNext}>
             <form onSubmit={handleHours} className="flex flex-col gap-4">
               <div className="grid grid-cols-2 gap-4">
                 <TextField label="Abre" name="start" type="time" defaultValue="08:00" required />
@@ -273,7 +273,7 @@ export function OnboardingPage() {
         ) : null}
 
         {step === 4 ? (
-          <StepShell step={4} title="Cadastre seu primeiro cliente" description="Nome e WhatsApp bastam para comecar." onSkip={goNext}>
+          <StepShell step={4} title="Cadastre seu primeiro cliente" description="Nome e WhatsApp bastam para começar." onSkip={goNext}>
             <form onSubmit={handleCustomer} className="flex flex-col gap-4">
               <TextField label="Nome do cliente" name="name" placeholder="Joana Ferreira" required autoFocus />
               <TextField label="WhatsApp" name="phone" type="tel" placeholder="(11) 98888-7777" required />
@@ -285,15 +285,15 @@ export function OnboardingPage() {
         ) : null}
 
         {step === 5 ? (
-          <StepShell step={5} title="Cadastre o pet" description="O bichinho do cliente que voce acabou de cadastrar." onSkip={goNext}>
+          <StepShell step={5} title="Cadastre o pet" description="O bichinho do cliente que você acabou de cadastrar." onSkip={goNext}>
             {!state.customerId ? (
               <p className="mb-4 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-sunken)] px-3.5 py-2.5 text-[0.8125rem] text-[var(--color-text-muted)]">
-                Voce pulou o passo do cliente -- cadastre um pet a qualquer momento em Pets.
+                Você pulou o passo do cliente -- cadastre um pet a qualquer momento em Pets.
               </p>
             ) : null}
             <form onSubmit={handlePet} className="flex flex-col gap-4">
               <TextField label="Nome do pet" name="name" placeholder="Thor" required autoFocus disabled={!state.customerId} />
-              <SelectField label="Especie" name="species" options={SPECIES_OPTIONS} defaultValue="DOG" disabled={!state.customerId} />
+              <SelectField label="Espécie" name="species" options={SPECIES_OPTIONS} defaultValue="DOG" disabled={!state.customerId} />
               <Button type="submit" loading={saving} className="w-full" disabled={!state.customerId}>
                 Salvar e continuar
               </Button>
@@ -305,7 +305,7 @@ export function OnboardingPage() {
           <StepShell step={6} title="Crie o primeiro agendamento" description="Veja como fica um atendimento marcado." onSkip={goNext}>
             {!state.customerId || !state.petId || !state.serviceId ? (
               <p className="mb-4 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-sunken)] px-3.5 py-2.5 text-[0.8125rem] text-[var(--color-text-muted)]">
-                Complete os passos de servico, cliente e pet para agendar por aqui -- ou crie o primeiro
+                Complete os passos de serviço, cliente e pet para agendar por aqui -- ou crie o primeiro
                 agendamento depois, na Agenda.
               </p>
             ) : null}

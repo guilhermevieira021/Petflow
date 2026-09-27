@@ -28,14 +28,14 @@ export function LimitBanner({ label, entry }: { label: string; entry: UsageEntry
       />
       <p className={reached ? 'flex-1 text-[0.8125rem] text-[var(--color-danger)]' : 'flex-1 text-[0.8125rem] text-[var(--color-warning)]'}>
         {reached
-          ? `Voce atingiu o limite de ${entry.limit} ${label.toLowerCase()} do seu plano atual (${entry.used}/${entry.limit}).`
-          : `Voce ja usou ${entry.used} de ${entry.limit} ${label.toLowerCase()} do seu plano.`}
+          ? `Você atingiu o limite de ${entry.limit} ${label.toLowerCase()} do seu plano atual (${entry.used}/${entry.limit}).`
+          : `Você já usou ${entry.used} de ${entry.limit} ${label.toLowerCase()} do seu plano.`}
       </p>
       <Link
         to="/planos"
         className={
           reached
-            ? 'shrink-0 rounded-[var(--radius-md)] bg-[var(--color-danger)] px-3 py-1.5 text-[0.8125rem] font-medium text-white hover:opacity-90'
+            ? 'shrink-0 rounded-[var(--radius-md)] bg-[var(--color-danger-solid)] px-3 py-1.5 text-[0.8125rem] font-medium text-white hover:opacity-90'
             : 'shrink-0 text-[0.8125rem] font-medium text-[var(--color-warning)] underline-offset-4 hover:underline'
         }
       >

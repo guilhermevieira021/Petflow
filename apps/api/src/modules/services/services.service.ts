@@ -73,7 +73,7 @@ export async function getService(
     .from(services)
     .where(and(eq(services.id, serviceId), eq(services.tenantId, context.tenantId), isNull(services.deletedAt)))
     .limit(1);
-  if (!row) throw new NotFoundError('Servico');
+  if (!row) throw new NotFoundError('Serviço');
   return toDto(row);
 }
 
@@ -95,7 +95,7 @@ export async function getActiveServiceOrThrow(
       ),
     )
     .limit(1);
-  if (!row) throw new NotFoundError('Servico');
+  if (!row) throw new NotFoundError('Serviço');
   return row;
 }
 
@@ -113,7 +113,7 @@ async function assertNameAvailable(
   if (excludingId) filters.push(sql`${services.id} <> ${excludingId}`);
 
   const [existing] = await tx.select({ id: services.id }).from(services).where(and(...filters)).limit(1);
-  if (existing) throw new ConflictError('Ja existe um servico com este nome.');
+  if (existing) throw new ConflictError('Já existe um serviço com este nome.');
 }
 
 export async function createService(
@@ -137,7 +137,7 @@ export async function createService(
     })
     .returning();
 
-  if (!row) throw new Error('Falha ao criar servico.');
+  if (!row) throw new Error('Falha ao criar serviço.');
 
   await recordAudit(tx, context, {
     action: AuditAction.SERVICE_CREATED,

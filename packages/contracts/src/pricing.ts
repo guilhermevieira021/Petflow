@@ -23,7 +23,7 @@ export function roundToCents(value: number): number {
 
 /** Preco de venda que produz a margem (fracao 0..1) desejada sobre a venda. */
 export function priceForMargin(cost: number, margin: number): number {
-  if (!Number.isFinite(cost) || cost < 0) throw new RangeError('Custo invalido.');
+  if (!Number.isFinite(cost) || cost < 0) throw new RangeError('Custo inválido.');
   if (!Number.isFinite(margin) || margin < 0 || margin >= 1) throw new RangeError('A margem deve estar entre 0% e 99,99%.');
   return roundToCents(cost / (1 - margin));
 }
@@ -73,7 +73,7 @@ export const PRICING_PROFILE_REFERENCES: Record<PricingProfile, PricingProfileRe
 };
 
 export const pricingProfileSchema = z.nativeEnum(PricingProfile, {
-  errorMap: () => ({ message: 'Perfil de preco invalido.' }),
+  errorMap: () => ({ message: 'Perfil de preço inválido.' }),
 });
 
 function normalizeText(value: string): string {

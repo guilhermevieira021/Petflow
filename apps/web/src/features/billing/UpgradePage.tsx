@@ -54,7 +54,7 @@ export function UpgradePage() {
       setCheckoutMessage(result.message);
     } catch (error) {
       setCheckoutMessage(
-        error instanceof ApiError ? error.message : 'Nao foi possivel iniciar o checkout.',
+        error instanceof ApiError ? error.message : 'Não foi possível iniciar o checkout.',
       );
     } finally {
       setLoading(false);

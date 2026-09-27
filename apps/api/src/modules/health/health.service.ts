@@ -113,7 +113,7 @@ export async function createPetHealthRecord(
       createdBy: context.userId,
     })
     .returning();
-  if (!row) throw new Error('Falha ao registrar historico.');
+  if (!row) throw new Error('Falha ao registrar histórico.');
 
   await recordAudit(tx, context, {
     action: AuditAction.PET_HEALTH_RECORDED,
@@ -156,7 +156,7 @@ export async function updatePetHealthRecord(
   const occurredOn = input.occurredOn ?? current.occurredOn;
   const nextDueOn = input.nextDueOn === undefined ? current.nextDueOn : input.nextDueOn;
   if (nextDueOn && nextDueOn < occurredOn) {
-    throw new BusinessRuleError('A proxima data deve ser igual ou posterior a data do registro.');
+    throw new BusinessRuleError('A próxima data deve ser igual ou posterior à data do registro.');
   }
 
   const patch: Partial<typeof petHealthRecords.$inferInsert> = {};

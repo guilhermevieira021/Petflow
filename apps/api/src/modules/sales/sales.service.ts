@@ -94,14 +94,14 @@ async function resolveItems(tx: Transaction, context: TenantContext, input: Crea
     if (item.productId) {
       const product = productMap.get(item.productId);
       if (!product) throw new NotFoundError('Produto');
-      if (!product.active) throw new BusinessRuleError(`O produto "${product.name}" esta inativo.`);
+      if (!product.active) throw new BusinessRuleError(`O produto "${product.name}" está inativo.`);
       description = description || product.name;
       unitPriceCents = item.unitPrice !== undefined ? Math.round(item.unitPrice * 100) : toCents(product.salePrice);
       tracksStock = product.trackStock;
     } else if (item.serviceId) {
       const service = serviceMap.get(item.serviceId);
-      if (!service) throw new NotFoundError('Servico');
-      if (!service.active) throw new BusinessRuleError(`O servico "${service.name}" esta inativo.`);
+      if (!service) throw new NotFoundError('Serviço');
+      if (!service.active) throw new BusinessRuleError(`O serviço "${service.name}" está inativo.`);
       description = description || service.name;
       unitPriceCents = item.unitPrice !== undefined ? Math.round(item.unitPrice * 100) : toCents(service.price);
     } else {
@@ -292,12 +292,12 @@ export async function createSale(tx: Transaction, context: TenantContext, input:
   const subtotalCents = items.reduce((sum, item) => sum + item.totalCents, 0);
   const discountCents = Math.round(input.discount * 100);
   if (discountCents > subtotalCents) {
-    throw new BusinessRuleError('O desconto nao pode ser maior que o valor da venda.');
+    throw new BusinessRuleError('O desconto não pode ser maior que o valor da venda.');
   }
   const totalCents = subtotalCents - discountCents;
   const soldAt = input.soldAt ? new Date(input.soldAt) : new Date();
   if (soldAt.getTime() > Date.now() + 5 * 60_000) {
-    throw new BusinessRuleError('A data da venda nao pode estar no futuro.');
+    throw new BusinessRuleError('A data da venda não pode estar no futuro.');
   }
 
   const number = await nextSaleNumber(tx, context);
@@ -405,7 +405,7 @@ export async function receiveSale(
   const sale = await lockSale(tx, context, saleId);
   if (sale.status !== 'OPEN') {
     throw new ConflictError(
-      sale.status === 'PAID' ? 'Esta venda ja foi recebida.' : 'Venda cancelada nao pode ser recebida.',
+      sale.status === 'PAID' ? 'Esta venda já foi recebida.' : 'Venda cancelada não pode ser recebida.',
       ErrorCode.INVALID_STATUS_TRANSITION,
     );
   }
@@ -415,7 +415,7 @@ export async function receiveSale(
     .from(payments)
     .where(and(eq(payments.saleId, saleId), eq(payments.tenantId, context.tenantId), eq(payments.status, 'PENDING')))
     .limit(1);
-  if (!pending) throw new BusinessRuleError('Nao ha recebimento pendente para esta venda.');
+  if (!pending) throw new BusinessRuleError('Não há recebimento pendente para esta venda.');
 
   const paidAt = new Date();
   await tx
@@ -448,7 +448,7 @@ export async function cancelSale(
   await assertActiveAccess(tx, context);
   const sale = await lockSale(tx, context, saleId);
   if (sale.status === 'CANCELLED') {
-    throw new ConflictError('Esta venda ja esta cancelada.', ErrorCode.INVALID_STATUS_TRANSITION);
+    throw new ConflictError('Esta venda já está cancelada.', ErrorCode.INVALID_STATUS_TRANSITION);
   }
 
   const items = await tx

@@ -30,7 +30,7 @@ export function Pagination({
           icon={<ChevronLeft className="size-4" />}
           disabled={!pagination.hasPrevious}
           onClick={() => onPageChange(pagination.page - 1)}
-          aria-label="Pagina anterior"
+          aria-label="Página anterior"
         >
           Anterior
         </Button>
@@ -42,9 +42,9 @@ export function Pagination({
           size="sm"
           disabled={!pagination.hasNext}
           onClick={() => onPageChange(pagination.page + 1)}
-          aria-label="Proxima pagina"
+          aria-label="Próxima página"
         >
-          Proxima
+          Próxima
           <ChevronRight aria-hidden className="size-4" />
         </Button>
       </div>

@@ -38,7 +38,7 @@ export function CustomerFormDrawer({
     },
     onError: (error) => {
       if (!(error instanceof ApiError) || error.fields.length === 0) {
-        toast.error(error instanceof ApiError ? error.message : 'Nao foi possivel salvar.');
+        toast.error(error instanceof ApiError ? error.message : 'Não foi possível salvar.');
       }
     },
   });
@@ -63,7 +63,7 @@ export function CustomerFormDrawer({
       open={open}
       onClose={onClose}
       title={isEditing ? 'Editar cliente' : 'Novo cliente'}
-      description={isEditing ? undefined : 'Nome e telefone bastam para comecar.'}
+      description={isEditing ? undefined : 'Nome e telefone bastam para começar.'}
     >
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
         <TextField
@@ -99,7 +99,7 @@ export function CustomerFormDrawer({
           error={apiError?.fieldError('email')}
         />
         <TextAreaField
-          label="Observacoes"
+          label="Observações"
           name="notes"
           defaultValue={customer?.notes ?? ''}
           error={apiError?.fieldError('notes')}
@@ -110,7 +110,7 @@ export function CustomerFormDrawer({
             Cancelar
           </Button>
           <Button type="submit" loading={mutation.isPending}>
-            {isEditing ? 'Salvar alteracoes' : 'Cadastrar cliente'}
+            {isEditing ? 'Salvar alterações' : 'Cadastrar cliente'}
           </Button>
         </div>
       </form>

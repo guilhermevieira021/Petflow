@@ -2,7 +2,7 @@ import { Permission, updateTenantInputSchema } from '@petflow/contracts';
 import type { FastifyInstance } from 'fastify';
 import { validate } from '../../core/validation.js';
 import { withTenant } from '../../db/context.js';
-import { getOnboarding, getTenant, updateTenant } from '../../modules/tenants/tenants.service.js';
+import { getAppearance, getOnboarding, getTenant, updateTenant } from '../../modules/tenants/tenants.service.js';
 import { currentAuth, requirePermission } from '../plugins/auth.js';
 
 /**
@@ -31,6 +31,17 @@ export async function tenantsRoutes(app: FastifyInstance): Promise<void> {
         updateTenant(tx, auth.context, input),
       );
       return reply.send(tenant);
+    },
+  );
+
+  // Tema e marca: lido por TODOS os papeis (STAFF nao tem SETTINGS_READ).
+  app.get(
+    '/current/appearance',
+    { preHandler: requirePermission(Permission.DASHBOARD_READ) },
+    async (request, reply) => {
+      const auth = currentAuth(request);
+      const appearance = await withTenant(auth.context.tenantId, (tx) => getAppearance(tx, auth.context));
+      return reply.send(appearance);
     },
   );
 

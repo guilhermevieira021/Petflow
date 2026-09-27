@@ -72,7 +72,7 @@ describe('TrialBanner', () => {
         trial: { active: false, hoursRemaining: 0, endsAt: new Date().toISOString() },
       }),
     );
-    expect(screen.getByRole('alert')).toHaveTextContent(/periodo de teste terminou/i);
+    expect(screen.getByRole('alert')).toHaveTextContent(/período de teste terminou/i);
     expect(screen.getByRole('link', { name: /escolher plano/i })).toHaveAttribute('href', '/upgrade');
   });
 

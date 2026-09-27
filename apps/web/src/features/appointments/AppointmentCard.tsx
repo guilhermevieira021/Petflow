@@ -35,7 +35,7 @@ export function AppointmentCard({
   const link = interactive
     ? whatsappLink(
         appointment.customerWhatsapp,
-        `Ola, ${appointment.customerName.split(' ')[0]}! Confirmando o atendimento do ${appointment.petName} as ${formatTime(appointment.startsAt, timeZone)}.`,
+        `Olá, ${appointment.customerName.split(' ')[0]}! Confirmando o atendimento do ${appointment.petName} às ${formatTime(appointment.startsAt, timeZone)}.`,
       )
     : null;
   const inactive = appointment.status === 'CANCELLED' || appointment.status === 'NO_SHOW';

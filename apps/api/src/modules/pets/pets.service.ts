@@ -207,7 +207,7 @@ export async function updatePet(
   if (!existing) throw new NotFoundError('Pet');
 
   if (input.active === false && !hasPermission(actorRole, Permission.PETS_DELETE)) {
-    throw new ForbiddenError('Voce nao possui permissao para desativar pets.');
+    throw new ForbiddenError('Você não possui permissão para desativar pets.');
   }
   if (Object.keys(input).some((key) => key !== 'active')) {
     await assertActiveAccess(tx, context);

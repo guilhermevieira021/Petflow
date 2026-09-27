@@ -87,11 +87,11 @@ export function AppointmentFormDrawer({
         // Erro de negocio esperado (§30): mensagem amigavel, permanece no
         // formulario para a pessoa escolher outro horario -- nunca fingimos
         // que o horario ficou livre so porque o frontend nao percebeu.
-        setConflictNotice('Esse horario ja esta ocupado. Escolha outro horario.');
+        setConflictNotice('Esse horário já está ocupado. Escolha outro horário.');
         return;
       }
       if (!(error instanceof ApiError) || error.fields.length === 0) {
-        toast.error(error instanceof ApiError ? error.message : 'Nao foi possivel salvar.');
+        toast.error(error instanceof ApiError ? error.message : 'Não foi possível salvar.');
       }
     },
   });
@@ -147,14 +147,14 @@ export function AppointmentFormDrawer({
         />
 
         <SelectField
-          label="Servico"
+          label="Serviço"
           name="serviceId"
           defaultValue={appointment?.serviceId}
           required
           error={apiError?.fieldError('serviceId')}
           hint={selectedService ? `${selectedService.durationMinutes} min · ${formatMoney(selectedService.price)}` : undefined}
           options={[
-            { value: '', label: 'Selecione o servico' },
+            { value: '', label: 'Selecione o serviço' },
             ...(servicesQuery.data?.data.map((service) => ({
               value: service.id,
               label: `${service.name} (${service.durationMinutes} min · ${formatMoney(service.price)})`,
@@ -190,7 +190,7 @@ export function AppointmentFormDrawer({
           />
         </div>
 
-        <TextAreaField label="Observacoes" name="notes" defaultValue={appointment?.notes ?? ''} />
+        <TextAreaField label="Observações" name="notes" defaultValue={appointment?.notes ?? ''} />
 
         {conflictNotice ? (
           <p role="alert" className="rounded-[var(--radius-md)] border border-[var(--color-danger)]/25 bg-[var(--color-danger-subtle)] px-3.5 py-2.5 text-[0.8125rem] text-[var(--color-danger)]">
@@ -203,7 +203,7 @@ export function AppointmentFormDrawer({
             Cancelar
           </Button>
           <Button type="submit" loading={mutation.isPending} disabled={!isEditing && !customerId}>
-            {isEditing ? 'Salvar alteracoes' : 'Criar agendamento'}
+            {isEditing ? 'Salvar alterações' : 'Criar agendamento'}
           </Button>
         </div>
       </form>

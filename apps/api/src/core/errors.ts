@@ -39,7 +39,7 @@ export class AppError extends Error {
 }
 
 export class BadRequestError extends AppError {
-  constructor(message = 'Requisicao invalida.', logContext?: Record<string, unknown>) {
+  constructor(message = 'Requisição inválida.', logContext?: Record<string, unknown>) {
     super(ErrorCode.BAD_REQUEST, message, 400, { logContext });
   }
 }
@@ -58,7 +58,7 @@ export class BusinessRuleError extends AppError {
 
 export class UnauthenticatedError extends AppError {
   constructor(
-    message = 'Sua sessao expirou. Faca login novamente.',
+    message = 'Sua sessão expirou. Faça login novamente.',
     code: ErrorCode = ErrorCode.UNAUTHENTICATED,
   ) {
     super(code, message, 401);
@@ -74,7 +74,7 @@ export class InvalidCredentialsError extends AppError {
 
 export class ForbiddenError extends AppError {
   constructor(
-    message = 'Voce nao possui permissao para realizar esta acao.',
+    message = 'Você não possui permissão para realizar esta ação.',
     code: ErrorCode = ErrorCode.FORBIDDEN,
     logContext?: Record<string, unknown>,
   ) {
@@ -86,7 +86,7 @@ export class InactiveAccountError extends AppError {
   constructor() {
     super(
       ErrorCode.ACCOUNT_INACTIVE,
-      'Seu acesso foi desativado. Fale com o responsavel pelo pet shop.',
+      'Seu acesso foi desativado. Fale com o responsável pelo pet shop.',
       403,
     );
   }
@@ -100,7 +100,7 @@ export class InactiveAccountError extends AppError {
  */
 export class NotFoundError extends AppError {
   constructor(resource = 'Registro', logContext?: Record<string, unknown>) {
-    super(ErrorCode.NOT_FOUND, `${resource} nao encontrado.`, 404, { logContext });
+    super(ErrorCode.NOT_FOUND, `${resource} não encontrado.`, 404, { logContext });
   }
 }
 

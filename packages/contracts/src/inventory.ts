@@ -19,22 +19,22 @@ export const PRODUCT_UNIT_LABELS: Record<ProductUnit, string> = {
 };
 
 export const productUnitSchema = z.nativeEnum(ProductUnit, {
-  errorMap: () => ({ message: 'Unidade invalida.' }),
+  errorMap: () => ({ message: 'Unidade inválida.' }),
 });
 
 /** Quantidade de estoque: ate 3 casas decimais. */
 export const quantitySchema = z
-  .number({ required_error: 'Informe a quantidade.', invalid_type_error: 'Informe uma quantidade numerica.' })
+  .number({ required_error: 'Informe a quantidade.', invalid_type_error: 'Informe uma quantidade numérica.' })
   .max(999_999_999.999, 'Quantidade acima do limite permitido.')
   .refine((value) => Number.isFinite(value) && Math.abs(Math.round(value * 1000) - value * 1000) < 1e-6, {
-    message: 'A quantidade deve ter no maximo 3 casas decimais.',
+    message: 'A quantidade deve ter no máximo 3 casas decimais.',
   });
 
 const skuSchema = z
   .string()
   .trim()
-  .max(64, 'O SKU deve ter no maximo 64 caracteres.')
-  .regex(/^[A-Za-z0-9._/-]*$/, 'Use apenas letras, numeros e . _ / - no SKU.')
+  .max(64, 'O SKU deve ter no máximo 64 caracteres.')
+  .regex(/^[A-Za-z0-9._/-]*$/, 'Use apenas letras, números e . _ / - no SKU.')
   .optional()
   .nullable()
   .transform((value) => (value == null || value === '' ? null : value));
@@ -43,12 +43,12 @@ const skuSchema = z
 const barcodeSchema = z
   .string()
   .trim()
-  .max(64, 'O codigo de barras deve ter no maximo 64 caracteres.')
-  .regex(/^[0-9A-Za-z-]*$/, 'Codigo de barras invalido.')
+  .max(64, 'O código de barras deve ter no máximo 64 caracteres.')
+  .regex(/^[0-9A-Za-z-]*$/, 'Código de barras inválido.')
   .optional()
   .nullable()
   .transform((value) => (value == null || value === '' ? null : value))
-  .refine((value) => value === null || value.length >= 4, 'Codigo de barras invalido.');
+  .refine((value) => value === null || value.length >= 4, 'Código de barras inválido.');
 
 /**
  * Normaliza o que chega de um leitor de codigo de barras (teclado HID) ou da
@@ -64,7 +64,7 @@ export function normalizeScannedCode(raw: string): string {
 const descriptionSchema = z
   .string()
   .trim()
-  .max(1000, 'A descricao deve ter no maximo 1000 caracteres.')
+  .max(1000, 'A descrição deve ter no máximo 1000 caracteres.')
   .optional()
   .nullable()
   .transform((value) => (value == null || value === '' ? null : value));
@@ -72,7 +72,7 @@ const descriptionSchema = z
 const categorySchema = z
   .string()
   .trim()
-  .max(60, 'A categoria deve ter no maximo 60 caracteres.')
+  .max(60, 'A categoria deve ter no máximo 60 caracteres.')
   .optional()
   .nullable()
   .transform((value) => (value == null || value === '' ? null : value));
@@ -89,10 +89,10 @@ export const createProductInputSchema = z
     unit: productUnitSchema.default('UN'),
     salePrice: moneySchema,
     costPrice: moneySchema.optional().nullable(),
-    minStock: quantitySchema.refine((value) => value >= 0, 'O estoque minimo nao pode ser negativo.').default(0),
+    minStock: quantitySchema.refine((value) => value >= 0, 'O estoque mínimo não pode ser negativo.').default(0),
     trackStock: z.boolean().default(true),
     /** Saldo inicial. Vira uma movimentacao de ENTRADA -- nunca um numero solto. */
-    initialStock: quantitySchema.refine((value) => value >= 0, 'O saldo inicial nao pode ser negativo.').default(0),
+    initialStock: quantitySchema.refine((value) => value >= 0, 'O saldo inicial não pode ser negativo.').default(0),
     /**
      * De onde veio o cadastro. BARCODE = produto desconhecido bipado na
      * entrada rapida: o saldo inicial e registrado como entrada de mercadoria
@@ -116,7 +116,7 @@ export const updateProductInputSchema = z
     unit: productUnitSchema.optional(),
     salePrice: moneySchema.optional(),
     costPrice: moneySchema.optional().nullable(),
-    minStock: quantitySchema.refine((value) => value >= 0, 'O estoque minimo nao pode ser negativo.').optional(),
+    minStock: quantitySchema.refine((value) => value >= 0, 'O estoque mínimo não pode ser negativo.').optional(),
     trackStock: z.boolean().optional(),
     active: z.boolean().optional(),
   })
@@ -227,8 +227,8 @@ export const STOCK_MOVEMENT_SOURCE_LABELS: Record<StockMovementSource, string> =
  */
 export const createStockMovementInputSchema = z
   .object({
-    type: z.enum(['IN', 'OUT', 'ADJUSTMENT', 'RETURN', 'LOSS', 'DAMAGE'], { errorMap: () => ({ message: 'Tipo de movimentacao invalido.' }) }),
-    quantity: quantitySchema.refine((value) => value >= 0, 'A quantidade nao pode ser negativa.'),
+    type: z.enum(['IN', 'OUT', 'ADJUSTMENT', 'RETURN', 'LOSS', 'DAMAGE'], { errorMap: () => ({ message: 'Tipo de movimentação inválido.' }) }),
+    quantity: quantitySchema.refine((value) => value >= 0, 'A quantidade não pode ser negativa.'),
     unitCost: moneySchema.optional().nullable(),
     reason: notesSchema,
   })
@@ -282,9 +282,9 @@ export interface InventorySummaryDto {
 
 export const productLookupQuerySchema = z.object({
   code: z
-    .string({ required_error: 'Informe o codigo.' })
+    .string({ required_error: 'Informe o código.' })
     .transform(normalizeScannedCode)
-    .pipe(z.string().min(1, 'Informe o codigo.').max(64, 'Codigo muito longo.')),
+    .pipe(z.string().min(1, 'Informe o código.').max(64, 'Código muito longo.')),
 });
 export type ProductLookupQuery = z.infer<typeof productLookupQuerySchema>;
 
@@ -336,7 +336,7 @@ export const STOCK_EXIT_REASON_LABELS: Record<StockExitReason, string> = {
  */
 export const stockEntryInputSchema = z
   .object({
-    type: z.enum(['IN', 'OUT', 'RETURN'], { errorMap: () => ({ message: 'Tipo de lancamento invalido.' }) }),
+    type: z.enum(['IN', 'OUT', 'RETURN'], { errorMap: () => ({ message: 'Tipo de lançamento inválido.' }) }),
     source: z.enum(['MANUAL', 'BARCODE']).default('MANUAL'),
     /** Obrigatorio na saida (OUT). */
     exitReason: z.nativeEnum(StockExitReason).optional(),
@@ -356,15 +356,15 @@ export const stockEntryInputSchema = z
           .strict(),
       )
       .min(1, 'Adicione ao menos um produto.')
-      .max(200, 'Lance no maximo 200 produtos por vez.'),
+      .max(200, 'Lance no máximo 200 produtos por vez.'),
   })
   .strict()
   .refine((data) => data.type !== 'OUT' || !!data.exitReason, {
-    message: 'Informe o motivo da saida.',
+    message: 'Informe o motivo da saída.',
     path: ['exitReason'],
   })
   .refine((data) => data.exitReason !== 'OTHER' || !!data.reason, {
-    message: 'Descreva o motivo da saida.',
+    message: 'Descreva o motivo da saída.',
     path: ['reason'],
   });
 export type StockEntryInput = z.infer<typeof stockEntryInputSchema>;
@@ -404,7 +404,7 @@ export interface ProductCategoryDto {
 export const renameCategoryInputSchema = z
   .object({
     from: z.string().trim().min(1).max(60),
-    to: z.string().trim().min(1, 'Informe o novo nome.').max(60, 'A categoria deve ter no maximo 60 caracteres.'),
+    to: z.string().trim().min(1, 'Informe o novo nome.').max(60, 'A categoria deve ter no máximo 60 caracteres.'),
   })
   .strict();
 export type RenameCategoryInput = z.infer<typeof renameCategoryInputSchema>;

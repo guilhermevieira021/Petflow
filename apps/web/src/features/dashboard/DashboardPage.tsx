@@ -15,6 +15,7 @@ import {
   UpcomingList,
   WeekSummary,
 } from './DashboardPanels';
+import { QuickThemePicker } from '@/features/theme/QuickThemePicker';
 import { InventoryDashboardPanel } from './InventoryDashboardPanel';
 import { OnboardingChecklist } from './OnboardingChecklist';
 import { RecentActivity } from './RecentActivity';
@@ -83,7 +84,7 @@ export function DashboardContent({
       </section>
 
       {/* 3. O que fazer agora: proximos atendimentos + pendencias. */}
-      <section aria-label="Agenda e pendencias" className="grid gap-4 lg:grid-cols-12">
+      <section aria-label="Agenda e pendências" className="grid gap-4 lg:grid-cols-12">
         <Card className="flex min-w-0 flex-col lg:col-span-7">
           <div className="flex items-center justify-between gap-3 border-b border-[var(--color-border)] px-5 py-3.5">
             <h2 className="text-[0.9375rem] font-semibold">Próximos atendimentos</h2>
@@ -106,7 +107,7 @@ export function DashboardContent({
       </section>
 
       {/* 4. Tendencia + operacao. */}
-      <section aria-label="Evolucao e operacao" className="grid gap-4 lg:grid-cols-12">
+      <section aria-label="Evolução e operação" className="grid gap-4 lg:grid-cols-12">
         <Card className="min-w-0 lg:col-span-8">
           <CardHeader title="Receita dos últimos 14 dias" description="Previsto pelos agendamentos × efetivamente recebido." />
           <CardBody>
@@ -145,6 +146,7 @@ export function DashboardPage() {
         eyebrow={query.data ? formatDateLong(`${query.data.referenceDate}T12:00:00Z`) : undefined}
         title={`${greeting(session.tenant.timezone)}, ${firstName}`}
         description="Veja como o seu pet shop está hoje."
+        action={can(Permission.SETTINGS_WRITE) ? <QuickThemePicker /> : undefined}
       />
 
       {!session.onboarding.completed ? (

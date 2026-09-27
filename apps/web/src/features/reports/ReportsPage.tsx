@@ -52,7 +52,7 @@ export function ReportsPage() {
 
   return (
     <>
-      <PageHeader title="Relatorios" description="Os numeros do seu pet shop no periodo selecionado." />
+      <PageHeader title="Relatórios" description="Os números do seu pet shop no período selecionado." />
 
       <div className="mb-4 flex flex-wrap items-end gap-3">
         <label className="flex flex-col gap-1 text-[0.8125rem]">
@@ -65,7 +65,7 @@ export function ReportsPage() {
           />
         </label>
         <label className="flex flex-col gap-1 text-[0.8125rem]">
-          Ate
+          Até
           <input
             type="date"
             value={to}
@@ -96,7 +96,7 @@ export function ReportsPage() {
             <CardHeader title="Atendimentos" />
             <CardBody className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <StatTile label="Total" value={String(query.data.appointments.total)} />
-              <StatTile label="Concluidos" value={String(query.data.appointments.completed)} />
+              <StatTile label="Concluídos" value={String(query.data.appointments.completed)} />
               <StatTile label="Cancelados" value={String(query.data.appointments.cancelled)} />
               <StatTile label="Faltas" value={String(query.data.appointments.noShow)} />
             </CardBody>
@@ -122,11 +122,11 @@ export function ReportsPage() {
 
           {query.data.advanced && query.data.topServices ? (
             <Card>
-              <CardHeader title="Servicos mais utilizados" />
+              <CardHeader title="Serviços mais utilizados" />
               {query.data.topServices.length === 0 ? (
                 <CardBody>
                   <p className="text-[0.8125rem] text-[var(--color-text-muted)]">
-                    Nenhum atendimento concluido no periodo.
+                    Nenhum atendimento concluído no período.
                   </p>
                 </CardBody>
               ) : (
@@ -145,8 +145,8 @@ export function ReportsPage() {
             </Card>
           ) : (
             <UpgradeLockedCard
-              title="Relatorios avancados"
-              description="Veja os servicos mais usados e o detalhamento completo de faturamento. Disponivel no plano PRO."
+              title="Relatórios avançados"
+              description="Veja os serviços mais usados e o detalhamento completo de faturamento. Disponível no plano PRO."
             />
           )}
         </div>

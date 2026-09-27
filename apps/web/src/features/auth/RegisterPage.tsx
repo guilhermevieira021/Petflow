@@ -49,7 +49,7 @@ export function RegisterPage() {
         setFormError(
           error instanceof ApiError
             ? error.message
-            : 'Nao foi possivel criar a conta. Tente novamente.',
+            : 'Não foi possível criar a conta. Tente novamente.',
         );
       }
     }

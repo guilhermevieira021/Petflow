@@ -12,7 +12,7 @@ const VARIANTS: Record<Variant, string> = {
     'bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border-strong)] shadow-[var(--shadow-xs)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-text-subtle)]',
   ghost: 'text-[var(--color-text-muted)] hover:bg-[var(--color-surface-sunken)] hover:text-[var(--color-text)]',
   danger:
-    'bg-[var(--color-danger)] text-[var(--color-text-inverse)] shadow-[var(--shadow-xs)] hover:opacity-90',
+    'bg-[var(--color-danger-solid)] text-[var(--color-text-inverse)] shadow-[var(--shadow-xs)] hover:opacity-90',
   link: 'text-[var(--color-brand-text)] underline-offset-4 hover:underline',
   /** Botao escuro -- CTA neutro em superficies claras (landing, paywall). */
   ink: 'bg-[var(--color-ink)] text-[var(--color-ink-text)] shadow-[var(--shadow-sm)] hover:bg-[var(--color-ink-hover)]',

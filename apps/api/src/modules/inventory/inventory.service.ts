@@ -204,7 +204,7 @@ async function assertUniqueCodes(
       .from(products)
       .where(and(...notDeleted(context), sql`lower(${products.sku}) = lower(${codes.sku})`, ...exclude))
       .limit(1);
-    if (row) throw new ConflictError('Ja existe um produto com este SKU.', ErrorCode.CONFLICT);
+    if (row) throw new ConflictError('Já existe um produto com este SKU.', ErrorCode.CONFLICT);
   }
   if (codes.barcode) {
     const [row] = await tx
@@ -212,7 +212,7 @@ async function assertUniqueCodes(
       .from(products)
       .where(and(...notDeleted(context), eq(products.barcode, codes.barcode), ...exclude))
       .limit(1);
-    if (row) throw new ConflictError('Ja existe um produto com este codigo de barras.', ErrorCode.CONFLICT);
+    if (row) throw new ConflictError('Já existe um produto com este código de barras.', ErrorCode.CONFLICT);
   }
 }
 
@@ -227,7 +227,7 @@ export async function createProduct(
   await assertUsableSupplier(tx, context, input.supplierId);
 
   if (!input.trackStock && input.initialStock > 0) {
-    throw new BusinessRuleError('Saldo inicial so se aplica a produtos que controlam estoque.');
+    throw new BusinessRuleError('Saldo inicial só se aplica a produtos que controlam estoque.');
   }
 
   const [row] = await tx
@@ -346,16 +346,16 @@ export async function applyStockMovement(
 
   if (!product.trackStock) {
     if (params.type === 'SALE' || params.type === 'SALE_CANCELLATION') return;
-    throw new BusinessRuleError(`"${product.name}" nao controla estoque. Ative o controle para movimentar o saldo.`);
+    throw new BusinessRuleError(`"${product.name}" não controla estoque. Ative o controle para movimentar o saldo.`);
   }
   if (params.deltaMilli === 0) {
-    throw new BusinessRuleError('A movimentacao nao altera o saldo.');
+    throw new BusinessRuleError('A movimentação não altera o saldo.');
   }
 
   const balanceMilli = toMilli(product.stockQuantity) + params.deltaMilli;
   if (balanceMilli < 0) {
     throw new BusinessRuleError(
-      `Estoque insuficiente de "${product.name}": saldo atual ${fromMilli(toMilli(product.stockQuantity))}, necessario ${fromMilli(-params.deltaMilli)}.`,
+      `Estoque insuficiente de "${product.name}": saldo atual ${fromMilli(toMilli(product.stockQuantity))}, necessário ${fromMilli(-params.deltaMilli)}.`,
     );
   }
 
@@ -398,7 +398,7 @@ export async function createManualMovement(
           quantityMilli - toMilli(product.stockQuantity);
 
   if (input.type === 'ADJUSTMENT' && deltaMilli === 0) {
-    throw new BusinessRuleError(`O saldo de "${product.name}" ja e ${fromMilli(quantityMilli)}.`);
+    throw new BusinessRuleError(`O saldo de "${product.name}" já é ${fromMilli(quantityMilli)}.`);
   }
 
   await applyStockMovement(tx, context, {
@@ -542,9 +542,9 @@ function entryReason(type: StockEntryInput['type'], exitReason: StockExitReason 
     type === 'IN'
       ? 'Entrada de mercadoria'
       : type === 'RETURN'
-        ? 'Devolucao de cliente'
+        ? 'Devolução de cliente'
         : exitReason === 'SALE'
-          ? 'Venda registrada fora do caixa (nao entra no Recebido)'
+          ? 'Venda registrada fora do caixa (não entra no Recebido)'
           : exitReason === 'LOSS'
             ? 'Perda'
             : exitReason === 'DAMAGE'

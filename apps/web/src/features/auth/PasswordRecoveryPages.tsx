@@ -43,7 +43,7 @@ export function ForgotPasswordPage() {
         <div className="flex items-start gap-3 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-sunken)] p-4">
           <CheckCircle2 aria-hidden className="mt-0.5 size-4 shrink-0 text-[var(--color-success)]" />
           <p className="text-[0.8125rem] leading-relaxed text-[var(--color-text-muted)]">
-            O link de recuperacao expira em 1 hora. Se nao chegar, verifique a caixa de spam ou
+            O link de recuperação expira em 1 hora. Se não chegar, verifique a caixa de spam ou
             tente novamente.
           </p>
         </div>
@@ -75,7 +75,7 @@ export function ForgotPasswordPage() {
           autoFocus
         />
         <Button type="submit" size="lg" loading={mutation.isPending} className="w-full">
-          Enviar link de recuperacao
+          Enviar link de recuperação
         </Button>
       </form>
     </AuthShell>
@@ -109,7 +109,7 @@ export function ResetPasswordPage() {
       setFormError(
         error instanceof ApiError
           ? error.message
-          : 'Nao foi possivel redefinir a senha. Tente novamente.',
+          : 'Não foi possível redefinir a senha. Tente novamente.',
       );
     }
   }
@@ -130,7 +130,7 @@ export function ResetPasswordPage() {
           </Link>
         }
       >
-        <FormAlert message="Solicite um novo link de recuperacao para continuar." />
+        <FormAlert message="Solicite um novo link de recuperação para continuar." />
       </AuthShell>
     );
   }
@@ -145,7 +145,7 @@ export function ResetPasswordPage() {
           name="password"
           type="password"
           autoComplete="new-password"
-          hint="Use ao menos 8 caracteres, com letras e numeros."
+          hint="Use ao menos 8 caracteres, com letras e números."
           required
           autoFocus
           error={apiError?.fieldError('password')}
@@ -165,7 +165,7 @@ export function ResetPasswordPage() {
         </Button>
 
         <p className="text-center text-[0.75rem] text-[var(--color-text-subtle)]">
-          Por seguranca, todas as sessoes abertas serao encerradas.
+          Por segurança, todas as sessões abertas serão encerradas.
         </p>
       </form>
     </AuthShell>

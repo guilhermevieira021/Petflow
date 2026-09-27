@@ -66,7 +66,7 @@ export const createMessageInputSchema = z
     appointmentId: uuidSchema.optional().nullable(),
     type: messageTypeSchema,
     channel: messageChannelSchema.default('WHATSAPP'),
-    content: z.string().trim().min(1, 'A mensagem nao pode ficar vazia.').max(2000),
+    content: z.string().trim().min(1, 'A mensagem não pode ficar vazia.').max(2000),
   })
   .strict();
 export type CreateMessageInput = z.infer<typeof createMessageInputSchema>;
@@ -242,13 +242,13 @@ export function hasMalformedPlaceholder(body: string): boolean {
 const templateBodySchema = z
   .string({ required_error: 'Escreva a mensagem.' })
   .trim()
-  .min(1, 'A mensagem nao pode ficar vazia.')
-  .max(2000, 'A mensagem deve ter no maximo 2000 caracteres.')
+  .min(1, 'A mensagem não pode ficar vazia.')
+  .max(2000, 'A mensagem deve ter no máximo 2000 caracteres.')
   .refine(
     (body) => templateVariablesIn(body).every((name) => canonicalTemplateVariable(name) !== null),
-    'A mensagem usa uma variavel desconhecida. Use apenas as variaveis listadas.',
+    'A mensagem usa uma variável desconhecida. Use apenas as variáveis listadas.',
   )
-  .refine((body) => !hasMalformedPlaceholder(body), 'Ha uma variavel mal escrita. Use o formato {{nome_da_variavel}}.');
+  .refine((body) => !hasMalformedPlaceholder(body), 'Há uma variável mal escrita. Use o formato {{nome_da_variavel}}.');
 
 export const upsertMessageTemplateInputSchema = z
   .object({
@@ -271,7 +271,7 @@ export interface MessageTemplateDto {
 }
 
 export const messageTemplateTypeSchema = z.nativeEnum(MessageTemplateType, {
-  errorMap: () => ({ message: 'Tipo de template invalido.' }),
+  errorMap: () => ({ message: 'Tipo de template inválido.' }),
 });
 
 /**

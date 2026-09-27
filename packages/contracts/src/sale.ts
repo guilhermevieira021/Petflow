@@ -40,18 +40,18 @@ export const saleItemInputSchema = z
     /** Servico do catalogo (ex.: banho avulso sem agendamento). */
     serviceId: uuidSchema.optional().nullable(),
     /** Obrigatoria para item livre; para produto/servico, se omitida, usa o nome do cadastro. */
-    description: z.string().trim().max(160, 'Descricao muito longa.').optional().nullable(),
+    description: z.string().trim().max(160, 'Descrição muito longa.').optional().nullable(),
     quantity: quantitySchema.refine((value) => value > 0, 'A quantidade deve ser maior que zero.'),
     /** Se omitido, usa o preco do cadastro do produto/servico. */
     unitPrice: moneySchema.optional(),
   })
   .strict()
   .refine((item) => !(item.productId && item.serviceId), {
-    message: 'Um item e produto OU servico, nao os dois.',
+    message: 'Um item é produto OU serviço, não os dois.',
     path: ['productId'],
   })
   .refine((item) => !!item.productId || !!item.serviceId || (!!item.description && item.unitPrice !== undefined), {
-    message: 'Item avulso precisa de descricao e valor.',
+    message: 'Item avulso precisa de descrição e valor.',
     path: ['description'],
   });
 export type SaleItemInput = z.infer<typeof saleItemInputSchema>;
@@ -61,7 +61,7 @@ export const createSaleInputSchema = z
     customerId: uuidSchema.optional().nullable(),
     petId: uuidSchema.optional().nullable(),
     appointmentId: uuidSchema.optional().nullable(),
-    items: z.array(saleItemInputSchema).min(1, 'Adicione ao menos um item.').max(100, 'Maximo de 100 itens por venda.'),
+    items: z.array(saleItemInputSchema).min(1, 'Adicione ao menos um item.').max(100, 'Máximo de 100 itens por venda.'),
     discount: moneySchema.default(0),
     /** Data/hora da venda. Padrao: agora. */
     soldAt: isoDateTimeSchema.optional().nullable(),
@@ -79,7 +79,7 @@ export const createSaleInputSchema = z
   })
   .strict()
   .refine((data) => !data.petId || !!data.customerId, {
-    message: 'Para vincular um pet, informe tambem o cliente.',
+    message: 'Para vincular um pet, informe também o cliente.',
     path: ['petId'],
   });
 export type CreateSaleInput = z.infer<typeof createSaleInputSchema>;

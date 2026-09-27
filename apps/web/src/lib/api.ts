@@ -122,7 +122,7 @@ export async function apiRequest<TResponse>(
     // Falha de rede: o servidor nem chegou a responder.
     throw new ApiError({
       code: ErrorCode.SERVICE_UNAVAILABLE,
-      message: 'Nao foi possivel conectar ao servidor. Verifique sua conexao.',
+      message: 'Não foi possível conectar ao servidor. Verifique sua conexão.',
       status: 0,
       ...(cause instanceof Error ? {} : {}),
     });
@@ -169,7 +169,7 @@ function toApiError(payload: unknown, status: number): ApiError {
     message:
       status >= 500
         ? 'O servidor encontrou um problema. Tente novamente em instantes.'
-        : 'Nao foi possivel completar a operacao.',
+        : 'Não foi possível completar a operação.',
     status,
   });
 }

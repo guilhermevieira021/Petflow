@@ -318,7 +318,7 @@ describe('leitor de codigo de barras', () => {
     const response = await entry(staffA, { type: 'RETURN', items: [{ productId: petisco.id, quantity: 1 }] });
     expect(response.statusCode).toBe(201);
     const [movement] = await movementsOf(shopA.owner, petisco.id);
-    expect(movement).toMatchObject({ type: 'RETURN', quantity: 1, balanceAfter: 2, reason: 'Devolucao de cliente' });
+    expect(movement).toMatchObject({ type: 'RETURN', quantity: 1, balanceAfter: 2, reason: 'Devolução de cliente' });
   });
 
   it('outro pet shop nao lanca estoque em produto do A', async () => {

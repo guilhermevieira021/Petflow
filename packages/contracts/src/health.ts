@@ -19,7 +19,7 @@ export const PET_HEALTH_TYPE_LABELS: Record<PetHealthType, string> = {
 };
 
 export const petHealthTypeSchema = z.nativeEnum(PetHealthType, {
-  errorMap: () => ({ message: 'Tipo de registro invalido.' }),
+  errorMap: () => ({ message: 'Tipo de registro inválido.' }),
 });
 
 /** Janela padrao de alerta: itens que vencem nos proximos N dias. */
@@ -31,7 +31,7 @@ const healthBaseSchema = z.object({
     .string({ required_error: 'Informe o nome (ex.: V10, Antirrábica).' })
     .trim()
     .min(2, 'Informe ao menos 2 caracteres.')
-    .max(120, 'Use no maximo 120 caracteres.'),
+    .max(120, 'Use no máximo 120 caracteres.'),
   occurredOn: isoDateSchema,
   nextDueOn: isoDateSchema.optional().nullable(),
   notes: notesSchema,
@@ -40,7 +40,7 @@ const healthBaseSchema = z.object({
 export const createPetHealthRecordInputSchema = healthBaseSchema
   .strict()
   .refine((data) => !data.nextDueOn || data.nextDueOn >= data.occurredOn, {
-    message: 'A proxima data deve ser igual ou posterior a data do registro.',
+    message: 'A próxima data deve ser igual ou posterior à data do registro.',
     path: ['nextDueOn'],
   });
 export type CreatePetHealthRecordInput = z.infer<typeof createPetHealthRecordInputSchema>;
@@ -52,7 +52,7 @@ export const updatePetHealthRecordInputSchema = healthBaseSchema
     message: 'Informe ao menos um campo para atualizar.',
   })
   .refine((data) => !data.nextDueOn || !data.occurredOn || data.nextDueOn >= data.occurredOn, {
-    message: 'A proxima data deve ser igual ou posterior a data do registro.',
+    message: 'A próxima data deve ser igual ou posterior à data do registro.',
     path: ['nextDueOn'],
   });
 export type UpdatePetHealthRecordInput = z.infer<typeof updatePetHealthRecordInputSchema>;

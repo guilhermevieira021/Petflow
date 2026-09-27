@@ -18,18 +18,18 @@ export const Role = {
 export type Role = (typeof Role)[keyof typeof Role];
 
 export const roleSchema = z.nativeEnum(Role, {
-  errorMap: () => ({ message: 'Papel invalido. Use OWNER, ADMIN ou STAFF.' }),
+  errorMap: () => ({ message: 'Papel inválido. Use OWNER, ADMIN ou STAFF.' }),
 });
 
 export const ROLE_LABELS: Record<Role, string> = {
-  OWNER: 'Proprietario',
+  OWNER: 'Proprietário',
   ADMIN: 'Administrador',
   STAFF: 'Atendente',
 };
 
 export const ROLE_DESCRIPTIONS: Record<Role, string> = {
-  OWNER: 'Acesso total, incluindo configuracoes, equipe e faturamento.',
-  ADMIN: 'Gestao operacional completa: clientes, pets, agenda, servicos e indicadores.',
+  OWNER: 'Acesso total, incluindo configurações, equipe e faturamento.',
+  ADMIN: 'Gestão operacional completa: clientes, pets, agenda, serviços e indicadores.',
   STAFF: 'Atendimento do dia a dia: clientes, pets, agenda e recebimentos.',
 };
 
