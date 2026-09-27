@@ -4,7 +4,9 @@ import {
   DEFAULT_MESSAGE_TEMPLATES,
   MESSAGE_TEMPLATE_TYPE_LABELS,
   TEMPLATE_TO_MESSAGE_TYPE,
-  TEMPLATE_VARIABLES,
+  TEMPLATE_VARIABLE_PATTERN,
+  canonicalTemplateVariable,
+  hasMalformedPlaceholder,
   templateVariablesIn,
   type MessageDto,
   type MessagePreviewDto,
@@ -214,7 +216,7 @@ export async function deleteCustomTemplate(tx: Transaction, context: TenantConte
 // Composicao: resolve o texto com dados REAIS do tenant
 // -----------------------------------------------------------------------------
 
-interface Composition {
+export interface Composition {
   content: string;
   recipient: string;
   missingVariables: string[];
@@ -231,16 +233,24 @@ export function toWhatsappRecipient(phone: string): string {
   return digits.startsWith('55') && digits.length >= 12 ? digits : `55${digits}`;
 }
 
+/**
+ * Substitui as variaveis por dados reais. Aceita os nomes antigos da Fase 2
+ * ({{cliente}}, {{pet}}, {{petshop}}) como sinonimos. Variavel sem dado,
+ * desconhecida ou chave mal formada vai para `missing` -- quem chama NUNCA
+ * registra/envia texto com placeholder sobrando.
+ */
 export function renderTemplate(body: string, values: Partial<Record<TemplateVariable, string>>): { content: string; missing: string[] } {
   const missing = new Set<string>();
-  const content = body.replace(/\{\{\s*([a-z]+)\s*\}\}/g, (match, name: string) => {
-    const value = values[name as TemplateVariable];
+  const content = body.replace(new RegExp(TEMPLATE_VARIABLE_PATTERN.source, 'g'), (match, name: string) => {
+    const canonical = canonicalTemplateVariable(name);
+    const value = canonical ? values[canonical] : undefined;
     if (value === undefined || value === '') {
       missing.add(name);
       return match;
     }
     return value;
   });
+  if (hasMalformedPlaceholder(content)) missing.add('formato');
   return { content, missing: [...missing] };
 }
 
@@ -270,14 +280,15 @@ async function resolveBody(
     };
   }
   if (!input.content) throw new BusinessRuleError('Escolha um template ou escreva a mensagem.');
-  const unknown = templateVariablesIn(input.content).filter(
-    (name) => !(TEMPLATE_VARIABLES as readonly string[]).includes(name),
-  );
+  const unknown = templateVariablesIn(input.content).filter((name) => canonicalTemplateVariable(name) === null);
   if (unknown.length > 0) throw new BusinessRuleError(`Variavel desconhecida: {{${unknown[0]}}}.`);
+  if (hasMalformedPlaceholder(input.content)) {
+    throw new BusinessRuleError('Ha uma variavel mal escrita. Use o formato {{nome_da_variavel}}.');
+  }
   return { body: input.content, templateId: null, messageType: 'MANUAL' };
 }
 
-async function compose(tx: Transaction, context: TenantContext, input: SendMessageInput): Promise<Composition> {
+export async function compose(tx: Transaction, context: TenantContext, input: SendMessageInput): Promise<Composition> {
   const [customer] = await tx
     .select()
     .from(customers)
@@ -320,9 +331,9 @@ async function compose(tx: Transaction, context: TenantContext, input: SendMessa
 
   const { body, templateId, messageType } = await resolveBody(tx, context, input);
   const values: Partial<Record<TemplateVariable, string>> = {
-    cliente: customer.name.split(' ')[0] ?? customer.name,
-    pet: petName,
-    petshop: tenant?.name,
+    nome_cliente: customer.name.split(' ')[0] ?? customer.name,
+    nome_pet: petName,
+    nome_petshop: tenant?.name,
     servico: appointment?.serviceName,
     data: appointment
       ? new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', timeZone }).format(appointment.startsAt)
@@ -350,7 +361,7 @@ export async function previewMessage(tx: Transaction, context: TenantContext, in
   return { content: composition.content, recipient: composition.recipient, missingVariables: composition.missingVariables };
 }
 
-async function insertComposedMessage(
+export async function insertComposedMessage(
   tx: Transaction,
   context: TenantContext,
   composition: Composition,
@@ -465,7 +476,7 @@ export async function enqueueAppointmentMessage(
   tx: Transaction,
   context: TenantContext,
   appointmentId: string,
-  templateType: 'APPOINTMENT_CONFIRMATION' | 'APPOINTMENT_CANCELLATION',
+  templateType: 'APPOINTMENT_CONFIRMATION' | 'APPOINTMENT_CANCELLATION' | 'APPOINTMENT_RESCHEDULE' | 'POST_SERVICE_FOLLOWUP',
   provider: WhatsappProvider,
 ): Promise<string | null> {
   const tenant = await getTenant(tx, context);

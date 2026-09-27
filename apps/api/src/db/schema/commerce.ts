@@ -1,4 +1,4 @@
-import type { ProductUnit, SaleStatus, StockMovementType } from '@petflow/contracts';
+import type { BrandSegment, ProductUnit, SaleStatus, StockMovementSource, StockMovementType } from '@petflow/contracts';
 import { boolean, integer, numeric, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { appointments } from './appointments.js';
 import { customers, pets } from './customers.js';
@@ -12,6 +12,43 @@ import { users } from './users.js';
  * para o Drizzle entender os joins (ver ADR-003).
  */
 
+/**
+ * Marcas (0011). tenant_id NULL = catalogo de referencia Petflow (so leitura
+ * para os pet shops); preenchido = marca cadastrada pelo pet shop.
+ */
+export const brands = pgTable('brands', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: uuid('tenant_id').references(() => tenants.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  segment: text('segment').$type<BrandSegment>().notNull().default('GENERAL'),
+  active: boolean('active').notNull().default(true),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type BrandRow = typeof brands.$inferSelect;
+
+/** Fornecedores do pet shop (0012). FK composta com tenant_id no SQL. */
+export const suppliers = pgTable('suppliers', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: uuid('tenant_id')
+    .notNull()
+    .references(() => tenants.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  document: text('document'),
+  phone: text('phone'),
+  email: text('email'),
+  contactName: text('contact_name'),
+  notes: text('notes'),
+  active: boolean('active').notNull().default(true),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type SupplierRow = typeof suppliers.$inferSelect;
+
 export const products = pgTable('products', {
   id: uuid('id').primaryKey().defaultRandom(),
   tenantId: uuid('tenant_id')
@@ -20,6 +57,9 @@ export const products = pgTable('products', {
   name: text('name').notNull(),
   sku: text('sku'),
   barcode: text('barcode'),
+  brandId: uuid('brand_id').references(() => brands.id, { onDelete: 'restrict' }),
+  supplierId: uuid('supplier_id').references(() => suppliers.id, { onDelete: 'set null' }),
+  description: text('description'),
   category: text('category'),
   unit: text('unit').$type<ProductUnit>().notNull().default('UN'),
   salePrice: numeric('sale_price', { precision: 10, scale: 2 }).notNull(),
@@ -87,6 +127,9 @@ export const stockMovements = pgTable('stock_movements', {
     .notNull()
     .references(() => products.id, { onDelete: 'restrict' }),
   type: text('type').$type<StockMovementType>().notNull(),
+  source: text('source').$type<StockMovementSource>().notNull().default('MANUAL'),
+  /** Codigo de barras congelado no momento da movimentacao. */
+  barcode: text('barcode'),
   /** Variacao assinada do saldo. */
   quantity: numeric('quantity', { precision: 12, scale: 3 }).notNull(),
   balanceAfter: numeric('balance_after', { precision: 12, scale: 3 }).notNull(),

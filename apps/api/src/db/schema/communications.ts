@@ -1,4 +1,4 @@
-import type { MessageTemplateType } from '@petflow/contracts';
+import type { MessageTemplateType, ReminderStatus } from '@petflow/contracts';
 import { boolean, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { appointments } from './appointments.js';
 import { customers, pets } from './customers.js';
@@ -8,6 +8,7 @@ export const MessageType = {
   APPOINTMENT_REMINDER: 'APPOINTMENT_REMINDER',
   APPOINTMENT_CONFIRMATION: 'APPOINTMENT_CONFIRMATION',
   APPOINTMENT_CANCELLATION: 'APPOINTMENT_CANCELLATION',
+  APPOINTMENT_RESCHEDULE: 'APPOINTMENT_RESCHEDULE',
   POST_SERVICE_FOLLOWUP: 'POST_SERVICE_FOLLOWUP',
   RETURN_INVITE: 'RETURN_INVITE',
   WINBACK: 'WINBACK',
@@ -122,13 +123,6 @@ export const ReminderType = {
 } as const;
 export type ReminderType = (typeof ReminderType)[keyof typeof ReminderType];
 
-export const ReminderStatus = {
-  PENDING: 'PENDING',
-  SENT: 'SENT',
-  CANCELLED: 'CANCELLED',
-  FAILED: 'FAILED',
-} as const;
-export type ReminderStatus = (typeof ReminderStatus)[keyof typeof ReminderStatus];
 
 export const reminders = pgTable('reminders', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -145,6 +139,9 @@ export const reminders = pgTable('reminders', {
   scheduledAt: timestamp('scheduled_at', { withTimezone: true }).notNull(),
   sentAt: timestamp('sent_at', { withTimezone: true }),
   status: text('status').$type<ReminderStatus>().notNull().default('PENDING'),
+  /** Mensagem gerada ao processar o lembrete (0011). */
+  messageId: uuid('message_id').references(() => messages.id, { onDelete: 'set null' }),
+  note: text('note'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });

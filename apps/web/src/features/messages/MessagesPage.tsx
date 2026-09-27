@@ -1,30 +1,34 @@
 import {
   MESSAGE_STATUS_LABELS,
+  MESSAGE_TEMPLATE_TRIGGERS,
   MESSAGE_TYPE_LABELS,
   Permission,
+  REMINDER_STATUS_LABELS,
   TEMPLATE_VARIABLE_LABELS,
   TEMPLATE_VARIABLES,
-  type AppointmentDetailDto,
   type MessageDto,
   type MessageStatus,
   type MessageTemplateDto,
   type Paginated,
+  type ProcessRemindersResultDto,
+  type ReminderDto,
+  type ReminderSchedulerStatusDto,
+  type ReminderStatus,
   type SendMessageResultDto,
   type WhatsappStatusDto,
 } from '@petflow/contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BellRing, CheckCircle2, ExternalLink, MessageSquare, Plug, PlugZap, RotateCcw, Send } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Button, buttonClasses } from '@/components/ui/Button';
 import { Pagination } from '@/components/ui/Pagination';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
-import { Badge, Card, CardHeader, EmptyState, ErrorState, PageHeader, Skeleton, type BadgeTone } from '@/components/ui/primitives';
+import { Badge, Card, EmptyState, ErrorState, PageHeader, Skeleton, type BadgeTone } from '@/components/ui/primitives';
 import { useToast } from '@/components/ui/Toast';
 import { useCurrentSession, useSession } from '@/features/auth/session';
 import { ApiError, api } from '@/lib/api';
 import { cn } from '@/lib/cn';
-import { formatDateTime, formatPhone, formatTime } from '@/lib/format';
-import { localDayWindow, shiftDate, todayInTimeZone } from '@/lib/timezone';
+import { formatDateTime, formatPhone, whatsappLink } from '@/lib/format';
 
 const STATUS_TONES: Record<MessageStatus, BadgeTone> = {
   DRAFT: 'warning',
@@ -68,7 +72,7 @@ function ConnectionBanner({ status }: { status: WhatsappStatusDto }) {
         </p>
         <p className="mt-0.5 text-[0.8125rem] leading-relaxed text-[var(--color-text-muted)]">{status.message}</p>
         <p className="mt-1 text-[0.75rem] text-[var(--color-text-subtle)]">
-          Mensagens automáticas (confirmação e cancelamento):{' '}
+          Mensagens automáticas (confirmação, cancelamento, reagendamento e pós-atendimento):{' '}
           <strong className="font-medium text-[var(--color-text-muted)]">{status.automationEnabled ? 'ligadas' : 'desligadas'}</strong>
           {status.automationEnabled ? '' : ' — ative em Configurações.'}
         </p>
@@ -165,99 +169,170 @@ function HistoryTab() {
 }
 
 /* ---------------------------------------------------------------------------
-   Lembretes: agendamentos de amanha
+   Lembretes: fila (geracao) x processamento (envio)
 --------------------------------------------------------------------------- */
 
-function RemindersTab({ onResult }: { onResult: (result: SendMessageResultDto) => void }) {
+const REMINDER_TONES: Record<ReminderStatus, BadgeTone> = {
+  PENDING: 'info',
+  SENT: 'success',
+  REGISTERED: 'warning',
+  FAILED: 'danger',
+  SKIPPED: 'neutral',
+  CANCELLED: 'neutral',
+};
+
+type ReminderFilter = 'PENDING' | 'REGISTERED' | 'DONE';
+
+function RemindersTab() {
   const session = useCurrentSession();
   const { can } = useSession();
   const toast = useToast();
   const queryClient = useQueryClient();
   const timeZone = session.tenant.timezone;
-  const tomorrow = useMemo(() => shiftDate(todayInTimeZone(timeZone), 1), [timeZone]);
-  const window = useMemo(() => localDayWindow(tomorrow, timeZone), [tomorrow, timeZone]);
+  const [filter, setFilter] = useState<ReminderFilter>('PENDING');
+  const [page, setPage] = useState(1);
+  const [result, setResult] = useState<ProcessRemindersResultDto | null>(null);
 
-  const appointmentsQuery = useQuery({
-    queryKey: ['appointments', 'reminders', tomorrow],
+  const status = useQuery({
+    queryKey: ['messages', 'reminders', 'status'],
+    queryFn: () => api.get<ReminderSchedulerStatusDto>('/messages/reminders/status'),
+  });
+  const list = useQuery({
+    queryKey: ['messages', 'reminders', 'list', filter, page],
     queryFn: () =>
-      api.get<Paginated<AppointmentDetailDto>>('/appointments', {
-        from: window.from,
-        to: window.to,
-        pageSize: 100,
-        sort: 'startsAt',
-        order: 'asc',
+      api.get<Paginated<ReminderDto>>('/messages/reminders', {
+        status: filter === 'DONE' ? undefined : filter,
+        page,
+        pageSize: 20,
       }),
+    placeholderData: (previous) => previous,
   });
-  const sentQuery = useQuery({
-    queryKey: ['messages', 'reminders-sent', tomorrow],
-    queryFn: () => api.get<Paginated<MessageDto>>('/messages', { type: 'APPOINTMENT_REMINDER', pageSize: 100 }),
-  });
-  const remindedIds = new Set((sentQuery.data?.data ?? []).map((message) => message.appointmentId).filter(Boolean));
 
-  const send = useMutation({
-    mutationFn: (appointment: AppointmentDetailDto) =>
-      api.post<SendMessageResultDto>('/messages/send', {
-        customerId: appointment.customerId,
-        appointmentId: appointment.id,
-        templateType: 'APPOINTMENT_REMINDER',
-      }),
-    onSuccess: async (result) => {
+  const process = useMutation({
+    mutationFn: (aheadHours: number) => api.post<ProcessRemindersResultDto>('/messages/reminders/process', { aheadHours }),
+    onSuccess: async (data) => {
+      setResult(data);
       await queryClient.invalidateQueries({ queryKey: ['messages'] });
-      onResult(result);
     },
-    onError: (error) => toast.error(error instanceof ApiError ? error.message : 'Não foi possível preparar o lembrete.'),
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : 'Não foi possível processar.'),
   });
 
-  // So o que ainda vai acontecer: agendado ou confirmado.
-  const items = (appointmentsQuery.data?.data ?? []).filter(
-    (appointment) => appointment.status === 'SCHEDULED' || appointment.status === 'CONFIRMED',
+  const items = (list.data?.data ?? []).filter((item) =>
+    filter === 'DONE' ? item.status !== 'PENDING' && item.status !== 'REGISTERED' : true,
   );
 
   return (
-    <Card className="overflow-hidden">
-      <CardHeader
-        title="Lembretes de amanhã"
-        description="Atendimentos agendados ou confirmados para amanhã."
-        icon={<BellRing className="size-4" />}
-      />
-      {appointmentsQuery.isLoading ? <Skeleton className="m-4 h-24" /> : null}
-      {appointmentsQuery.data && items.length === 0 ? (
-        <EmptyState compact icon={<CheckCircle2 className="size-5" />} title="Nenhum atendimento amanhã" />
-      ) : null}
-      {items.length > 0 ? (
-        <ul className="divide-y divide-[var(--color-border)]">
-          {items.map((appointment) => {
-            const reminded = remindedIds.has(appointment.id);
-            return (
-              <li key={appointment.id} className="flex flex-col gap-3 px-5 py-3.5 sm:flex-row sm:items-center">
-                <span className="tabular w-14 shrink-0 text-sm font-semibold">{formatTime(appointment.startsAt, timeZone)}</span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold">
-                    {appointment.petName} <span className="font-normal text-[var(--color-text-muted)]">· {appointment.customerName}</span>
-                  </p>
-                  <p className="truncate text-[0.8125rem] text-[var(--color-text-muted)]">{appointment.serviceName}</p>
-                </div>
-                {reminded ? <Badge tone="neutral">Lembrete já registrado</Badge> : null}
-                {can(Permission.MESSAGES_SEND) ? (
-                  <Button
-                    size="sm"
-                    variant={reminded ? 'secondary' : 'primary'}
-                    icon={<Send className="size-3.5" />}
-                    loading={send.isPending && send.variables?.id === appointment.id}
-                    onClick={() => send.mutate(appointment)}
-                  >
-                    {reminded ? 'Enviar de novo' : 'Enviar lembrete'}
-                  </Button>
-                ) : null}
-              </li>
-            );
-          })}
-        </ul>
-      ) : null}
-      <p className="border-t border-[var(--color-border)] px-5 py-3 text-[0.75rem] text-[var(--color-text-subtle)]">
-        O disparo programado de lembretes (sem clicar) exige um agendador no servidor e ainda não está ativo.
-      </p>
-    </Card>
+    <div className="flex flex-col gap-4">
+      <Card className="p-5">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center">
+          <div className="min-w-0 flex-1">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              <BellRing aria-hidden className="size-4 text-[var(--color-brand-text)]" />
+              Lembretes de atendimento
+            </h3>
+            <p className="mt-1 text-[0.8125rem] text-[var(--color-text-muted)]">
+              Cada agendamento gera um lembrete para {status.data?.reminderHours ?? '…'}h antes do horário.{' '}
+              {status.data ? (
+                <>
+                  <strong className="text-[var(--color-text)]">{status.data.pending}</strong> agendado(s),{' '}
+                  <strong className="text-[var(--color-text)]">{status.data.dueNow}</strong> pronto(s) para processar.
+                </>
+              ) : null}
+            </p>
+          </div>
+          {can(Permission.MESSAGES_SEND) ? (
+            <div className="flex flex-wrap gap-2">
+              <Button variant="secondary" loading={process.isPending && process.variables === 24} onClick={() => process.mutate(24)}>
+                Incluir próximas 24h
+              </Button>
+              <Button icon={<Send className="size-4" />} loading={process.isPending && process.variables === 0} onClick={() => process.mutate(0)}>
+                Processar lembretes
+              </Button>
+            </div>
+          ) : null}
+        </div>
+        <p className="mt-4 rounded-[var(--radius-md)] bg-[var(--color-surface-sunken)] px-3.5 py-2.5 text-[0.75rem] text-[var(--color-text-muted)]">
+          O processamento automático (sem clicar) depende de um agendador no servidor (worker/cron) e ainda não está ativo.
+          {status.data && !status.data.automaticProcessing ? ' Por enquanto, use "Processar lembretes".' : ''}
+        </p>
+        {result ? (
+          <div
+            role="status"
+            className={cn(
+              'mt-3 rounded-[var(--radius-md)] border px-3.5 py-2.5 text-[0.8125rem]',
+              result.providerConnected
+                ? 'border-[var(--color-success)]/30 bg-[var(--color-success-subtle)]'
+                : 'border-[var(--color-warning)]/40 bg-[var(--color-warning-subtle)]',
+            )}
+          >
+            <p className="font-medium">{result.notice}</p>
+            <p className="mt-0.5 text-[var(--color-text-muted)]">
+              Processados: {result.processed} · enviados pela API: {result.sent} · registrados sem envio: {result.registered} · falhas:{' '}
+              {result.failed} · não gerados: {result.skipped}
+            </p>
+          </div>
+        ) : null}
+      </Card>
+
+      <Card className="overflow-hidden">
+        <div className="border-b border-[var(--color-border)] px-5 py-3">
+          <SegmentedControl<ReminderFilter>
+            label="Filtrar lembretes"
+            size="sm"
+            value={filter}
+            onChange={(value) => {
+              setFilter(value);
+              setPage(1);
+            }}
+            options={[
+              { value: 'PENDING', label: 'Agendados' },
+              { value: 'REGISTERED', label: 'Não enviados' },
+              { value: 'DONE', label: 'Concluídos' },
+            ]}
+          />
+        </div>
+        {list.isLoading ? <Skeleton className="m-4 h-24" /> : null}
+        {list.isError ? <ErrorState message="Não foi possível carregar." onRetry={() => void list.refetch()} /> : null}
+        {list.data && items.length === 0 ? (
+          <EmptyState
+            compact
+            icon={<CheckCircle2 className="size-5" />}
+            title={filter === 'PENDING' ? 'Nenhum lembrete agendado' : filter === 'REGISTERED' ? 'Nada pendente de envio manual' : 'Nenhum lembrete concluído'}
+          />
+        ) : null}
+        {items.length > 0 ? (
+          <ul className="divide-y divide-[var(--color-border)]">
+            {items.map((item) => {
+              const link = item.status === 'REGISTERED' && item.messageContent ? whatsappLink(item.customerWhatsapp, item.messageContent) : null;
+              return (
+                <li key={item.id} className="flex flex-col gap-2 px-5 py-3.5 sm:flex-row sm:items-center">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold">
+                      {item.petName ?? 'Pet'} <span className="font-normal text-[var(--color-text-muted)]">· {item.customerName}</span>
+                    </p>
+                    <p className="truncate text-[0.8125rem] text-[var(--color-text-muted)]">
+                      {item.serviceName ?? 'Atendimento'} em {formatDateTime(item.appointmentStartsAt, timeZone)} · lembrete{' '}
+                      {item.status === 'PENDING' ? 'para' : 'de'} {formatDateTime(item.scheduledAt, timeZone)}
+                    </p>
+                    {item.note ? <p className="truncate text-[0.75rem] text-[var(--color-text-subtle)]">{item.note}</p> : null}
+                  </div>
+                  <Badge dot tone={REMINDER_TONES[item.status]}>
+                    {REMINDER_STATUS_LABELS[item.status]}
+                  </Badge>
+                  {link ? (
+                    <a href={link} target="_blank" rel="noreferrer" className={buttonClasses('secondary', 'sm')}>
+                      <ExternalLink aria-hidden className="size-3.5" />
+                      Enviar pelo WhatsApp
+                    </a>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
+        {list.data ? <Pagination pagination={list.data.pagination} onPageChange={setPage} /> : null}
+      </Card>
+    </div>
   );
 }
 
@@ -294,7 +369,12 @@ function TemplateEditor({ template, canEdit }: { template: MessageTemplateDto; c
   return (
     <Card className="p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold">{template.name}</h3>
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold">{template.name}</h3>
+          {template.type !== 'CUSTOM' ? (
+            <p className="text-[0.75rem] text-[var(--color-text-muted)]">{MESSAGE_TEMPLATE_TRIGGERS[template.type]}</p>
+          ) : null}
+        </div>
         <div className="flex items-center gap-2">
           {template.isDefault ? <Badge tone="neutral">Texto padrão</Badge> : <Badge tone="brand">Personalizado</Badge>}
           {!active ? <Badge tone="warning">Desativado</Badge> : null}
@@ -395,7 +475,7 @@ export function MessagesPage() {
         ]}
       />
       {tab === 'history' ? <HistoryTab /> : null}
-      {tab === 'reminders' ? <RemindersTab onResult={setResult} /> : null}
+      {tab === 'reminders' ? <RemindersTab /> : null}
       {tab === 'templates' ? <TemplatesTab /> : null}
     </>
   );

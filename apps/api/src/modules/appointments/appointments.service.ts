@@ -20,6 +20,7 @@ import { toCount, toIsoRequired, toMoneyLiteral, toNumber } from '../../core/ser
 import type { Transaction } from '../../db/client.js';
 import { acquireTransactionLock, type TenantContext } from '../../db/context.js';
 import { getWhatsappProvider } from '../../integrations/whatsapp/whatsapp.provider.js';
+import { cancelAppointmentReminders, scheduleAppointmentReminder } from '../messages/reminders.service.js';
 import { enqueueAppointmentMessage } from '../messages/whatsapp.service.js';
 import { appointments, customers, pets, services, users } from '../../db/schema/index.js';
 import { assertActiveAccess, assertWithinLimit } from '../billing/billing.service.js';
@@ -275,6 +276,10 @@ export async function createAppointment(
     metadata: { customerId: input.customerId, petId: input.petId, startsAt: input.startsAt },
   });
 
+  // Lembrete: apenas AGENDADO aqui (fila `reminders`). Gerar a mensagem e
+  // enviar e outra etapa -- ver reminders.service.ts.
+  await scheduleAppointmentReminder(tx, context, row.id);
+
   return toDto(row);
 }
 
@@ -322,7 +327,14 @@ export async function updateAppointment(
 
   const startsAt = input.startsAt ? new Date(input.startsAt) : current.startsAt;
   if (input.startsAt) assertNotInPast(startsAt, input.allowPast);
-  const endsAt = input.endsAt ? new Date(input.endsAt) : current.endsAt;
+  // Remarcar so o inicio (o que a tela de edicao envia) preserva a duracao
+  // original. Antes, o termino antigo era mantido e remarcar para depois dele
+  // falhava com "termino antes do inicio".
+  const endsAt = input.endsAt
+    ? new Date(input.endsAt)
+    : input.startsAt
+      ? new Date(startsAt.getTime() + (current.endsAt.getTime() - current.startsAt.getTime()))
+      : current.endsAt;
   if (endsAt.getTime() <= startsAt.getTime()) {
     throw new BusinessRuleError('O horario de termino deve ser depois do horario de inicio.');
   }
@@ -359,6 +371,13 @@ export async function updateAppointment(
     entityId: appointmentId,
     metadata: { fields: Object.keys(input) },
   });
+
+  // Remarcacao: reagenda o lembrete e (com envio automatico autorizado)
+  // registra o aviso de reagendamento. O envio real acontece apos o commit.
+  if (startsAt.getTime() !== current.startsAt.getTime()) {
+    await scheduleAppointmentReminder(tx, context, appointmentId);
+    await enqueueAppointmentMessage(tx, context, appointmentId, 'APPOINTMENT_RESCHEDULE', getWhatsappProvider());
+  }
 
   const [row] = await tx.select().from(appointments).where(eq(appointments.id, appointmentId)).limit(1);
   if (!row) throw new NotFoundError('Agendamento');
@@ -421,6 +440,13 @@ export async function changeAppointmentStatus(
       input.status === 'CONFIRMED' ? 'APPOINTMENT_CONFIRMATION' : 'APPOINTMENT_CANCELLATION',
       getWhatsappProvider(),
     );
+  }
+  if (input.status === 'COMPLETED') {
+    await enqueueAppointmentMessage(tx, context, appointmentId, 'POST_SERVICE_FOLLOWUP', getWhatsappProvider());
+  }
+  // Atendimento encerrado (concluido, cancelado, falta): lembrete pendente perde o sentido.
+  if (input.status === 'CANCELLED' || input.status === 'COMPLETED' || input.status === 'NO_SHOW') {
+    await cancelAppointmentReminders(tx, context, appointmentId, `Agendamento ${input.status === 'CANCELLED' ? 'cancelado' : 'encerrado'}.`);
   }
 
   const [row] = await tx.select().from(appointments).where(eq(appointments.id, appointmentId)).limit(1);

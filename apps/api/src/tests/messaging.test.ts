@@ -109,10 +109,24 @@ afterAll(async () => {
 
 describe('unidade', () => {
   it('renderTemplate substitui variaveis e aponta as que ficaram sem dado', () => {
-    expect(renderTemplate('Oi {{cliente}}, {{pet}} em {{data}}', { cliente: 'Ana', pet: 'Rex' })).toEqual({
+    expect(
+      renderTemplate('Oi {{nome_cliente}}, {{nome_pet}} em {{data}}', { nome_cliente: 'Ana', nome_pet: 'Rex' }),
+    ).toEqual({
       content: 'Oi Ana, Rex em {{data}}',
       missing: ['data'],
     });
+  });
+
+  it('renderTemplate aceita os nomes antigos ({{cliente}}, {{pet}}, {{petshop}})', () => {
+    expect(
+      renderTemplate('Oi {{cliente}}, {{pet}} -- {{petshop}}', { nome_cliente: 'Ana', nome_pet: 'Rex', nome_petshop: 'Loja' }),
+    ).toEqual({ content: 'Oi Ana, Rex -- Loja', missing: [] });
+  });
+
+  it('renderTemplate nunca deixa passar variavel desconhecida ou chave mal formada', () => {
+    expect(renderTemplate('Oi {{apelido}}', { nome_cliente: 'Ana' }).missing).toEqual(['apelido']);
+    expect(renderTemplate('Oi {{nome cliente}}', { nome_cliente: 'Ana' }).missing).toEqual(['formato']);
+    expect(renderTemplate('Oi {{nome_cliente}', { nome_cliente: 'Ana' }).missing).toEqual(['formato']);
   });
 
   it('destinatario vira numero internacional com 55', () => {

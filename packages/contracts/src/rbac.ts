@@ -70,6 +70,8 @@ export const Permission = {
   PRODUCTS_WRITE: 'products:write',
   /** Entrada, saida e ajuste manual de estoque. Venda baixa o estoque sozinha. */
   STOCK_WRITE: 'stock:write',
+  /** Receber mercadoria (entrada rapida / devolucao de cliente). Saida e ajuste continuam em STOCK_WRITE. */
+  STOCK_RECEIVE: 'stock:receive',
 
   MESSAGES_READ: 'messages:read',
   MESSAGES_SEND: 'messages:send',
@@ -114,6 +116,7 @@ const STAFF_PERMISSIONS: readonly Permission[] = [
   Permission.SALES_READ,
   Permission.SALES_WRITE,
   Permission.PRODUCTS_READ,
+  Permission.STOCK_RECEIVE,
   Permission.MESSAGES_READ,
   Permission.MESSAGES_SEND,
   Permission.RETENTION_READ,

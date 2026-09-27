@@ -1,8 +1,8 @@
 import { Permission, type InventorySummaryDto, type Paginated, type ProductDto } from '@petflow/contracts';
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, ChevronRight, Package, Plus } from 'lucide-react';
+import { AlertTriangle, ChevronRight, Package, Plus, X } from 'lucide-react';
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { Pagination } from '@/components/ui/Pagination';
 import { FilterChip, SearchInput } from '@/components/ui/SearchInput';
@@ -12,6 +12,7 @@ import { ApiError, api } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { formatMoney, formatQuantity } from '@/lib/format';
 import { ProductFormDrawer } from './ProductFormDrawer';
+import { StockNav } from './StockNav';
 
 type Filter = 'active' | 'low' | 'inactive' | 'all';
 
@@ -84,13 +85,18 @@ export function ProductsPage() {
   const [filter, setFilter] = useState<Filter>('active');
   const [page, setPage] = useState(1);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const category = searchParams.get('categoria') ?? undefined;
+  const supplierId = searchParams.get('fornecedor') ?? undefined;
   const canWrite = can(Permission.PRODUCTS_WRITE);
 
   const query = useQuery({
-    queryKey: ['products', 'list', { search, filter, page }],
+    queryKey: ['products', 'list', { search, filter, page, category, supplierId }],
     queryFn: () =>
       api.get<Paginated<ProductDto>>('/products', {
         search: search || undefined,
+        category,
+        supplierId,
         active: filter === 'active' || filter === 'low' ? 'true' : filter === 'inactive' ? 'false' : undefined,
         lowStock: filter === 'low' ? 'true' : undefined,
         page,
@@ -113,7 +119,31 @@ export function ProductsPage() {
         }
       />
 
+      <StockNav />
       <InventorySummaryStrip />
+
+      {supplierId ? (
+        <p className="mb-3 flex items-center gap-2 text-sm">
+          Filtrando por fornecedor.
+          <button type="button" onClick={() => setSearchParams({})} className="font-medium text-[var(--color-brand-text)] hover:underline">
+            Limpar filtro
+          </button>
+        </p>
+      ) : null}
+      {category ? (
+        <p className="mb-3 flex items-center gap-2 text-sm">
+          Categoria:
+          <button
+            type="button"
+            onClick={() => setSearchParams({})}
+            className="flex items-center gap-1 rounded-full bg-[var(--color-brand-subtle)] px-3 py-1 font-medium text-[var(--color-brand-text)]"
+            aria-label={`Remover filtro da categoria ${category}`}
+          >
+            {category}
+            <X aria-hidden className="size-3.5" />
+          </button>
+        </p>
+      ) : null}
 
       <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center">
         <SearchInput
@@ -122,7 +152,7 @@ export function ProductsPage() {
             setSearch(value);
             setPage(1);
           }}
-          placeholder="Buscar por nome, SKU ou código de barras"
+          placeholder="Buscar por nome, marca, SKU ou código de barras"
           label="Buscar produtos"
           className="flex-1"
         />
@@ -188,6 +218,7 @@ export function ProductsPage() {
                     <th scope="col" className="px-5 py-3 font-medium">Produto</th>
                     <th scope="col" className="px-4 py-3 font-medium">Categoria</th>
                     <th scope="col" className="px-4 py-3 text-right font-medium">Preço</th>
+                    <th scope="col" className="px-4 py-3 text-right font-medium">Margem</th>
                     <th scope="col" className="px-4 py-3 text-right font-medium">Saldo</th>
                     <th scope="col" className="px-4 py-3 text-right font-medium">Mínimo</th>
                     <th scope="col" className="px-4 py-3 font-medium">Estoque</th>
@@ -208,10 +239,20 @@ export function ProductsPage() {
                         >
                           {product.name}
                         </Link>
-                        <span className="block text-[0.75rem] text-[var(--color-text-muted)]">{product.sku ?? 'Sem SKU'}</span>
+                        <span className="block text-[0.75rem] text-[var(--color-text-muted)]">
+                          {[product.brandName, product.sku ?? 'Sem SKU'].filter(Boolean).join(' · ')}
+                        </span>
                       </td>
                       <td className="px-4 py-3 text-[var(--color-text-muted)]">{product.category ?? '--'}</td>
                       <td className="tabular px-4 py-3 text-right">{formatMoney(product.salePrice)}</td>
+                      <td
+                        className={cn(
+                          'tabular px-4 py-3 text-right',
+                          product.margin !== null && product.margin < 0 ? 'text-[var(--color-danger)]' : 'text-[var(--color-text-muted)]',
+                        )}
+                      >
+                        {product.margin === null ? '--' : `${(product.margin * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`}
+                      </td>
                       <td className="tabular px-4 py-3 text-right font-semibold">{product.trackStock ? formatQuantity(product.stockQuantity) : '--'}</td>
                       <td className="tabular px-4 py-3 text-right text-[var(--color-text-muted)]">{product.trackStock ? formatQuantity(product.minStock) : '--'}</td>
                       <td className="px-4 py-3">
@@ -230,6 +271,7 @@ export function ProductsPage() {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[0.9375rem] font-semibold">{product.name}</p>
                       <p className="mt-0.5 flex items-center gap-2 text-[0.8125rem] text-[var(--color-text-muted)]">
+                        {product.brandName ? <span className="truncate">{product.brandName} ·</span> : null}
                         <span className="tabular">{formatMoney(product.salePrice)}</span>
                         {product.trackStock ? <span className="tabular">· saldo {formatQuantity(product.stockQuantity)}</span> : null}
                       </p>

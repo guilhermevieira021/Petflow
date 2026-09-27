@@ -15,6 +15,7 @@ import {
   UpcomingList,
   WeekSummary,
 } from './DashboardPanels';
+import { InventoryDashboardPanel } from './InventoryDashboardPanel';
 import { OnboardingChecklist } from './OnboardingChecklist';
 import { RecentActivity } from './RecentActivity';
 import { RevenueChart } from './RevenueChart';
@@ -168,6 +169,12 @@ export function DashboardPage() {
       ) : null}
 
       {query.data ? <DashboardContent data={query.data} showActivity={can(Permission.AUDIT_READ)} /> : null}
+
+      {query.data && can(Permission.PRODUCTS_READ) ? (
+        <div className="mt-4">
+          <InventoryDashboardPanel />
+        </div>
+      ) : null}
     </>
   );
 }

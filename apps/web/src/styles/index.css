@@ -267,4 +267,22 @@
   .animate-fade-in {
     animation: fade-in 0.2s ease-out;
   }
+
+  /* Destaque do ultimo produto bipado na entrada rapida. */
+  @keyframes pf-flash {
+    from {
+      box-shadow: 0 0 0 4px var(--color-success-subtle);
+      border-color: var(--color-success);
+    }
+  }
+
+  .pf-flash {
+    animation: pf-flash 0.7s ease-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pf-flash {
+      animation: none;
+    }
+  }
 }

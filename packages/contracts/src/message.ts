@@ -5,6 +5,7 @@ export const MessageType = {
   APPOINTMENT_REMINDER: 'APPOINTMENT_REMINDER',
   APPOINTMENT_CONFIRMATION: 'APPOINTMENT_CONFIRMATION',
   APPOINTMENT_CANCELLATION: 'APPOINTMENT_CANCELLATION',
+  APPOINTMENT_RESCHEDULE: 'APPOINTMENT_RESCHEDULE',
   POST_SERVICE_FOLLOWUP: 'POST_SERVICE_FOLLOWUP',
   RETURN_INVITE: 'RETURN_INVITE',
   WINBACK: 'WINBACK',
@@ -16,6 +17,7 @@ export const MESSAGE_TYPE_LABELS: Record<MessageType, string> = {
   APPOINTMENT_REMINDER: 'Lembrete de agendamento',
   APPOINTMENT_CONFIRMATION: 'Confirmação de agendamento',
   APPOINTMENT_CANCELLATION: 'Cancelamento de agendamento',
+  APPOINTMENT_RESCHEDULE: 'Reagendamento',
   POST_SERVICE_FOLLOWUP: 'Pós-atendimento',
   RETURN_INVITE: 'Convite de retorno',
   WINBACK: 'Recuperação',
@@ -120,6 +122,8 @@ export const MessageTemplateType = {
   APPOINTMENT_CONFIRMATION: 'APPOINTMENT_CONFIRMATION',
   APPOINTMENT_REMINDER: 'APPOINTMENT_REMINDER',
   APPOINTMENT_CANCELLATION: 'APPOINTMENT_CANCELLATION',
+  APPOINTMENT_RESCHEDULE: 'APPOINTMENT_RESCHEDULE',
+  POST_SERVICE_FOLLOWUP: 'POST_SERVICE_FOLLOWUP',
   RETURN_INVITE: 'RETURN_INVITE',
   CUSTOM: 'CUSTOM',
 } as const;
@@ -129,6 +133,8 @@ export const MESSAGE_TEMPLATE_TYPE_LABELS: Record<MessageTemplateType, string> =
   APPOINTMENT_CONFIRMATION: 'Confirmação de agendamento',
   APPOINTMENT_REMINDER: 'Lembrete de agendamento',
   APPOINTMENT_CANCELLATION: 'Cancelamento',
+  APPOINTMENT_RESCHEDULE: 'Reagendamento',
+  POST_SERVICE_FOLLOWUP: 'Pós-atendimento',
   RETURN_INVITE: 'Mensagem de retorno',
   CUSTOM: 'Personalizada',
 };
@@ -138,46 +144,99 @@ export const TEMPLATE_TO_MESSAGE_TYPE: Record<MessageTemplateType, MessageType> 
   APPOINTMENT_CONFIRMATION: 'APPOINTMENT_CONFIRMATION',
   APPOINTMENT_REMINDER: 'APPOINTMENT_REMINDER',
   APPOINTMENT_CANCELLATION: 'APPOINTMENT_CANCELLATION',
+  APPOINTMENT_RESCHEDULE: 'APPOINTMENT_RESCHEDULE',
+  POST_SERVICE_FOLLOWUP: 'POST_SERVICE_FOLLOWUP',
   RETURN_INVITE: 'RETURN_INVITE',
   CUSTOM: 'MANUAL',
 };
 
+/**
+ * Quando cada template automatico e gerado. O ENVIO e sempre separado da
+ * geracao: sem WhatsApp Business API, a mensagem fica "Registrada (nao
+ * enviada)" com link wa.me; lembretes agendados dependem de um worker/cron.
+ */
+export const MESSAGE_TEMPLATE_TRIGGERS: Record<Exclude<MessageTemplateType, 'CUSTOM'>, string> = {
+  APPOINTMENT_CONFIRMATION: 'Ao confirmar um agendamento (com envio automático autorizado).',
+  APPOINTMENT_REMINDER: 'Ao gerar os lembretes dos próximos atendimentos.',
+  APPOINTMENT_CANCELLATION: 'Ao cancelar um agendamento (com envio automático autorizado).',
+  APPOINTMENT_RESCHEDULE: 'Ao mudar a data ou o horário de um agendamento (com envio automático autorizado).',
+  POST_SERVICE_FOLLOWUP: 'Ao concluir um atendimento (com envio automático autorizado).',
+  RETURN_INVITE: 'Manualmente, na tela de recuperação de clientes.',
+};
+
 /** Variaveis aceitas nos templates. Resolvidas no servidor com dados reais. */
-export const TEMPLATE_VARIABLES = ['cliente', 'pet', 'servico', 'data', 'horario', 'petshop'] as const;
+export const TEMPLATE_VARIABLES = ['nome_cliente', 'nome_pet', 'servico', 'data', 'horario', 'nome_petshop'] as const;
 export type TemplateVariable = (typeof TEMPLATE_VARIABLES)[number];
 
+/**
+ * Nomes antigos (Fase 2), aceitos para nao quebrar templates ja salvos.
+ * Novos textos devem usar os nomes de TEMPLATE_VARIABLES.
+ */
+export const LEGACY_TEMPLATE_VARIABLE_ALIASES: Readonly<Record<string, TemplateVariable>> = {
+  cliente: 'nome_cliente',
+  pet: 'nome_pet',
+  petshop: 'nome_petshop',
+};
+
+/** Nome canonico de uma variavel (resolve aliases antigos); null se desconhecida. */
+export function canonicalTemplateVariable(name: string): TemplateVariable | null {
+  if ((TEMPLATE_VARIABLES as readonly string[]).includes(name)) return name as TemplateVariable;
+  return LEGACY_TEMPLATE_VARIABLE_ALIASES[name] ?? null;
+}
+
 export const TEMPLATE_VARIABLE_LABELS: Record<TemplateVariable, string> = {
-  cliente: 'Primeiro nome do cliente',
-  pet: 'Nome do pet',
+  nome_cliente: 'Primeiro nome do cliente',
+  nome_pet: 'Nome do pet',
   servico: 'Serviço agendado',
   data: 'Data do agendamento',
   horario: 'Horário do agendamento',
-  petshop: 'Nome do pet shop',
+  nome_petshop: 'Nome do pet shop',
 };
 
 /** Textos padrao, usados enquanto o pet shop nao personaliza. */
 export const DEFAULT_MESSAGE_TEMPLATES: Record<Exclude<MessageTemplateType, 'CUSTOM'>, { name: string; body: string }> = {
   APPOINTMENT_CONFIRMATION: {
     name: 'Confirmação de agendamento',
-    body: 'Olá, {{cliente}}! O atendimento do {{pet}} ({{servico}}) está confirmado para {{data}} às {{horario}}. Até lá! — {{petshop}}',
+    body: 'Olá, {{nome_cliente}}! O atendimento do {{nome_pet}} ({{servico}}) está confirmado para {{data}} às {{horario}}. Até lá! — {{nome_petshop}}',
   },
   APPOINTMENT_REMINDER: {
     name: 'Lembrete de agendamento',
-    body: 'Olá, {{cliente}}! Passando para lembrar do atendimento do {{pet}} ({{servico}}) em {{data}} às {{horario}}. — {{petshop}}',
+    body: 'Olá, {{nome_cliente}}! O {{nome_pet}} tem {{servico}} agendado em {{data}} às {{horario}}. Até lá! — {{nome_petshop}}',
   },
   APPOINTMENT_CANCELLATION: {
     name: 'Cancelamento',
-    body: 'Olá, {{cliente}}. O atendimento do {{pet}} marcado para {{data}} às {{horario}} foi cancelado. Se quiser remarcar, é só responder esta mensagem. — {{petshop}}',
+    body: 'Olá, {{nome_cliente}}. O atendimento do {{nome_pet}} marcado para {{data}} às {{horario}} foi cancelado. Se quiser remarcar, é só responder esta mensagem. — {{nome_petshop}}',
+  },
+  APPOINTMENT_RESCHEDULE: {
+    name: 'Reagendamento',
+    body: 'Olá, {{nome_cliente}}! O atendimento do {{nome_pet}} ({{servico}}) foi remarcado para {{data}} às {{horario}}. Qualquer dúvida, é só responder. — {{nome_petshop}}',
+  },
+  POST_SERVICE_FOLLOWUP: {
+    name: 'Pós-atendimento',
+    body: 'Olá, {{nome_cliente}}! Obrigado por trazer o {{nome_pet}} para {{servico}} hoje. Como ele ficou? — {{nome_petshop}}',
   },
   RETURN_INVITE: {
     name: 'Mensagem de retorno',
-    body: 'Olá, {{cliente}}! Já faz um tempinho desde a última visita do {{pet}}. Que tal agendar o próximo cuidado? — {{petshop}}',
+    body: 'Olá, {{nome_cliente}}! Já faz um tempinho desde a última visita do {{nome_pet}}. Que tal agendar o próximo cuidado? — {{nome_petshop}}',
   },
 };
 
 /** Nomes de variaveis usados no texto, na ordem em que aparecem. */
 export function templateVariablesIn(body: string): string[] {
-  return [...body.matchAll(/\{\{\s*([a-z]+)\s*\}\}/g)].map((match) => match[1] ?? '');
+  return [...body.matchAll(TEMPLATE_VARIABLE_PATTERN)].map((match) => match[1] ?? '');
+}
+
+/** `{{ nome }}` -- letras minusculas e _ (ex.: {{nome_cliente}}). */
+export const TEMPLATE_VARIABLE_PATTERN = /\{\{\s*([a-z_]+)\s*\}\}/g;
+
+/**
+ * Chaves soltas que nao formam uma variavel valida (ex.: "{{nome cliente}}",
+ * "{{Pet}}", "{{servico" sem fechar). Viraria placeholder quebrado no texto
+ * final, entao o template e recusado.
+ */
+export function hasMalformedPlaceholder(body: string): boolean {
+  const withoutValid = body.replace(TEMPLATE_VARIABLE_PATTERN, '');
+  return withoutValid.includes('{{') || withoutValid.includes('}}');
 }
 
 const templateBodySchema = z
@@ -186,9 +245,10 @@ const templateBodySchema = z
   .min(1, 'A mensagem nao pode ficar vazia.')
   .max(2000, 'A mensagem deve ter no maximo 2000 caracteres.')
   .refine(
-    (body) => templateVariablesIn(body).every((name) => (TEMPLATE_VARIABLES as readonly string[]).includes(name)),
+    (body) => templateVariablesIn(body).every((name) => canonicalTemplateVariable(name) !== null),
     'A mensagem usa uma variavel desconhecida. Use apenas as variaveis listadas.',
-  );
+  )
+  .refine((body) => !hasMalformedPlaceholder(body), 'Ha uma variavel mal escrita. Use o formato {{nome_da_variavel}}.');
 
 export const upsertMessageTemplateInputSchema = z
   .object({
@@ -254,4 +314,90 @@ export interface MessagePreviewDto {
   recipient: string | null;
   /** Variaveis sem dado real para preencher (ex.: sem agendamento vinculado). */
   missingVariables: string[];
+}
+
+// -----------------------------------------------------------------------------
+// Lembretes: GERACAO separada do ENVIO
+//
+// Geracao: criar/remarcar um agendamento agenda um lembrete PENDING para
+// (inicio - antecedencia). Envio: `processDueReminders` (worker/cron no
+// futuro, ou o botao "Processar lembretes") gera a mensagem e registra o
+// resultado real. Nada e marcado como enviado sem aceite da API.
+// -----------------------------------------------------------------------------
+
+export const ReminderStatus = {
+  PENDING: 'PENDING',
+  SENT: 'SENT',
+  REGISTERED: 'REGISTERED',
+  FAILED: 'FAILED',
+  SKIPPED: 'SKIPPED',
+  CANCELLED: 'CANCELLED',
+} as const;
+export type ReminderStatus = (typeof ReminderStatus)[keyof typeof ReminderStatus];
+
+export const REMINDER_STATUS_LABELS: Record<ReminderStatus, string> = {
+  PENDING: 'Agendado',
+  SENT: 'Enviado pela API',
+  REGISTERED: 'Registrado (não enviado)',
+  FAILED: 'Falhou',
+  SKIPPED: 'Não gerado',
+  CANCELLED: 'Cancelado',
+};
+
+export const listRemindersQuerySchema = paginationQuerySchema.extend({
+  status: z.nativeEnum(ReminderStatus).optional(),
+});
+export type ListRemindersQuery = z.infer<typeof listRemindersQuerySchema>;
+
+export interface ReminderDto {
+  id: string;
+  appointmentId: string | null;
+  appointmentStartsAt: string | null;
+  customerId: string;
+  customerName: string;
+  customerWhatsapp: string | null;
+  petName: string | null;
+  serviceName: string | null;
+  scheduledAt: string;
+  status: ReminderStatus;
+  /** Motivo quando SKIPPED/FAILED/CANCELLED. */
+  note: string | null;
+  messageId: string | null;
+  /** Texto gerado (para envio manual via wa.me quando nao ha API). */
+  messageContent: string | null;
+  messageStatus: MessageStatus | null;
+  processedAt: string | null;
+}
+
+export const processRemindersInputSchema = z
+  .object({
+    /**
+     * Processa tambem os lembretes agendados ate N horas a frente (ex.:
+     * "mandar hoje os lembretes de amanha"). Padrao: so os ja vencidos.
+     */
+    aheadHours: z.number().int().min(0).max(72).default(0),
+  })
+  .strict();
+export type ProcessRemindersInput = z.infer<typeof processRemindersInputSchema>;
+
+export interface ProcessRemindersResultDto {
+  processed: number;
+  /** Aceitos pela WhatsApp Business API. */
+  sent: number;
+  /** Mensagem gerada, mas nao enviada (API nao configurada). */
+  registered: number;
+  failed: number;
+  skipped: number;
+  /** true = WhatsApp Business API configurada no servidor. */
+  providerConnected: boolean;
+  notice: string;
+}
+
+export interface ReminderSchedulerStatusDto {
+  /** Processamento automatico periodico (worker/cron). Ainda nao existe. */
+  automaticProcessing: false;
+  reminderHours: number;
+  pending: number;
+  dueNow: number;
+  notice: string;
 }

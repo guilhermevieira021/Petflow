@@ -42,6 +42,10 @@ const envSchema = z
     WHATSAPP_API_URL: z.string().optional(),
     WHATSAPP_ACCESS_TOKEN: z.string().optional(),
     WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
+    // Webhook de status (entregue/lida) da Meta. Sem os dois, o endpoint
+    // responde 503 e NUNCA aceita notificacao sem validar a origem.
+    WHATSAPP_VERIFY_TOKEN: z.string().optional(),
+    WHATSAPP_APP_SECRET: z.string().optional(),
 
     // Assistente: provider de linguagem OPCIONAL, so no servidor. Sem ele, o
     // assistente continua respondendo as perguntas prontas (consultas

@@ -1,6 +1,13 @@
-import { STOCK_MOVEMENT_TYPE_LABELS, type Paginated, type StockMovementDto } from '@petflow/contracts';
+import {
+  STOCK_MOVEMENT_SOURCE_LABELS,
+  STOCK_MOVEMENT_TYPE_LABELS,
+  type Paginated,
+  type StockMovementDto,
+  type StockMovementSource,
+  type StockMovementType,
+} from '@petflow/contracts';
 import { useQuery } from '@tanstack/react-query';
-import { History } from 'lucide-react';
+import { History, ScanBarcode } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Pagination } from '@/components/ui/Pagination';
@@ -10,22 +17,37 @@ import { ApiError, api } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { formatDateTime, formatQuantity } from '@/lib/format';
 
-const TYPE_TONES: Record<StockMovementDto['type'], BadgeTone> = {
+const TYPE_TONES: Record<StockMovementType, BadgeTone> = {
   IN: 'success',
   OUT: 'warning',
   ADJUSTMENT: 'info',
   SALE: 'brand',
   SALE_CANCELLATION: 'neutral',
+  RETURN: 'success',
+  LOSS: 'danger',
+  DAMAGE: 'danger',
 };
 
-/** Historico de movimentacoes -- de um produto ou do estoque inteiro. */
-export function MovementsList({ productId, showProduct = false, pageSize = 15 }: { productId?: string; showProduct?: boolean; pageSize?: number }) {
+/** Historico de movimentacoes -- de um produto ou do estoque inteiro. Nada e apagado. */
+export function MovementsList({
+  productId,
+  showProduct = false,
+  pageSize = 15,
+  type,
+  source,
+}: {
+  productId?: string;
+  showProduct?: boolean;
+  pageSize?: number;
+  type?: StockMovementType;
+  source?: StockMovementSource;
+}) {
   const session = useCurrentSession();
   const [page, setPage] = useState(1);
 
   const query = useQuery({
-    queryKey: ['inventory', 'movements', productId ?? 'all', page],
-    queryFn: () => api.get<Paginated<StockMovementDto>>('/inventory/movements', { productId, page, pageSize }),
+    queryKey: ['inventory', 'movements', productId ?? 'all', type ?? 'any', source ?? 'any', page],
+    queryFn: () => api.get<Paginated<StockMovementDto>>('/inventory/movements', { productId, type, source, page, pageSize }),
     placeholderData: (previous) => previous,
   });
 
@@ -48,7 +70,7 @@ export function MovementsList({ productId, showProduct = false, pageSize = 15 }:
     );
   }
   if (!query.data || query.data.data.length === 0) {
-    return <EmptyState compact icon={<History className="size-5" />} title="Nenhuma movimentação ainda" />;
+    return <EmptyState compact icon={<History className="size-5" />} title="Nenhuma movimentação encontrada" />;
   }
 
   return (
@@ -59,6 +81,12 @@ export function MovementsList({ productId, showProduct = false, pageSize = 15 }:
             <div className="min-w-0 flex-1">
               <p className="flex flex-wrap items-center gap-2">
                 <Badge tone={TYPE_TONES[movement.type]}>{STOCK_MOVEMENT_TYPE_LABELS[movement.type]}</Badge>
+                {movement.source === 'BARCODE' ? (
+                  <span className="flex items-center gap-1 text-[0.75rem] text-[var(--color-text-muted)]" title={STOCK_MOVEMENT_SOURCE_LABELS.BARCODE}>
+                    <ScanBarcode aria-hidden className="size-3.5" />
+                    <span className="sr-only">{STOCK_MOVEMENT_SOURCE_LABELS.BARCODE}</span>
+                  </span>
+                ) : null}
                 {showProduct ? (
                   <Link to={`/produtos/${movement.productId}`} className="truncate text-sm font-semibold hover:underline">
                     {movement.productName}
@@ -74,6 +102,7 @@ export function MovementsList({ productId, showProduct = false, pageSize = 15 }:
                 {formatDateTime(movement.createdAt, session.tenant.timezone)}
                 {movement.userName ? ` · ${movement.userName}` : ''}
                 {movement.reason && !movement.saleId ? ` · ${movement.reason}` : ''}
+                {movement.barcode ? <span className="tabular"> · {movement.barcode}</span> : null}
               </p>
             </div>
             <div className="shrink-0 text-right">
@@ -86,7 +115,10 @@ export function MovementsList({ productId, showProduct = false, pageSize = 15 }:
                 {movement.quantity > 0 ? '+' : ''}
                 {formatQuantity(movement.quantity)}
               </p>
-              <p className="tabular text-[0.75rem] text-[var(--color-text-subtle)]">saldo {formatQuantity(movement.balanceAfter)}</p>
+              <p className="tabular text-[0.75rem] text-[var(--color-text-subtle)]">
+                <span className="sr-only">Saldo de </span>
+                {formatQuantity(movement.balanceBefore)} → {formatQuantity(movement.balanceAfter)}
+              </p>
             </div>
           </li>
         ))}

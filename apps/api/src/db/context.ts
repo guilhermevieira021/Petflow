@@ -118,6 +118,33 @@ export async function withPublicBookingTenant<T>(
 }
 
 /**
+ * Porta do webhook de status do WhatsApp (Meta). A notificacao traz so o id
+ * da mensagem no provider (wamid); o tenant e descoberto pela funcao SQL
+ * `message_tenant_by_provider_id` (SECURITY DEFINER, migration 0012), que
+ * devolve APENAS o tenant_id. Depois disso, tudo roda como em withTenant:
+ * role `petflow_app`, RLS ligado, `app.tenant_id` fixado.
+ *
+ * Retorna `null` quando nenhuma mensagem tem esse id.
+ */
+export async function withProviderMessageTenant<T>(
+  providerMessageId: string,
+  fn: (tx: Transaction, tenantId: string) => Promise<T>,
+): Promise<T | null> {
+  const db = await getDatabase();
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`SET LOCAL ROLE petflow_app`);
+    const result = await tx.execute<{ id: string | null }>(
+      sql`SELECT message_tenant_by_provider_id(${providerMessageId}) AS id`,
+    );
+    const tenantId = result.rows[0]?.id ?? null;
+    if (!tenantId) return null;
+    assertUuid(tenantId, 'tenantId');
+    await tx.execute(sql`SELECT set_config('app.tenant_id', ${tenantId}, true)`);
+    return fn(tx, tenantId);
+  });
+}
+
+/**
  * Serializa operacoes concorrentes por chave dentro da transacao corrente.
  * O lock e liberado automaticamente no COMMIT/ROLLBACK.
  *

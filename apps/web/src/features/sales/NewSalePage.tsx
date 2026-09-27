@@ -1,10 +1,12 @@
 import {
+  normalizeScannedCode,
   PAYMENT_METHOD_LABELS,
   Permission,
   type CustomerDto,
   type Paginated,
   type PaymentMethod,
   type ProductDto,
+  type ProductLookupDto,
   type SaleDetailDto,
   type ServiceDto,
 } from '@petflow/contracts';
@@ -126,6 +128,25 @@ export function NewSalePage() {
     setSearch('');
   }
 
+  async function addByCode(raw: string): Promise<void> {
+    const code = normalizeScannedCode(raw);
+    if (!code) return;
+    try {
+      const result = await api.get<ProductLookupDto>('/products/lookup', { code });
+      if (result.status === 'FOUND') {
+        if (!result.product.active) {
+          toast.error(`"${result.product.name}" está inativo.`);
+          return;
+        }
+        addProduct(result.product);
+      } else if (productResults.length === 0) {
+        toast.error(`Produto não cadastrado (código ${result.code}).`);
+      }
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : 'Não foi possível buscar o código.');
+    }
+  }
+
   function addService(service: ServiceDto): void {
     setItems((current) => [
       ...current,
@@ -221,12 +242,22 @@ export function NewSalePage() {
           <div className="border-b border-[var(--color-border)] p-4">
             {can(Permission.PRODUCTS_READ) ? (
               <div className="relative">
-                <SearchInput
-                  value={search}
-                  onChange={setSearch}
-                  placeholder="Buscar produto por nome, SKU ou código de barras"
-                  label="Buscar produto"
-                />
+                {/* Leitor de codigo de barras (HID) digita o codigo + Enter:
+                    Enter busca o codigo exato e ja adiciona ao carrinho. */}
+                <form
+                  role="search"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void addByCode(search);
+                  }}
+                >
+                  <SearchInput
+                    value={search}
+                    onChange={setSearch}
+                    placeholder="Bipe o código ou busque por nome, SKU"
+                    label="Buscar produto"
+                  />
+                </form>
                 {search.trim() ? (
                   <ul
                     className="absolute inset-x-0 top-full z-10 mt-1 max-h-80 overflow-y-auto rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)]"

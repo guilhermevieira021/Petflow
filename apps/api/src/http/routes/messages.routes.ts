@@ -2,8 +2,10 @@ import {
   createMessageInputSchema,
   idParamSchema,
   listMessagesQuerySchema,
+  listRemindersQuerySchema,
   messageTemplateTypeSchema,
   Permission,
+  processRemindersInputSchema,
   sendMessageInputSchema,
   upsertMessageTemplateInputSchema,
   type SendMessageResultDto,
@@ -14,6 +16,11 @@ import { validate } from '../../core/validation.js';
 import { withTenant } from '../../db/context.js';
 import { getWhatsappProvider } from '../../integrations/whatsapp/whatsapp.provider.js';
 import { createMessage, listMessages } from '../../modules/messages/messages.service.js';
+import {
+  getReminderSchedulerStatus,
+  listReminders,
+  processDueReminders,
+} from '../../modules/messages/reminders.service.js';
 import {
   createCustomTemplate,
   deleteCustomTemplate,
@@ -90,6 +97,24 @@ export async function messagesRoutes(app: FastifyInstance): Promise<void> {
       notice,
     };
     return reply.status(201).send(result);
+  });
+
+  // Lembretes: listagem da fila e processamento manual dos vencidos.
+  app.get('/reminders', { preHandler: requirePermission(Permission.MESSAGES_READ) }, async (request, reply) => {
+    const auth = currentAuth(request);
+    const query = validate(listRemindersQuerySchema, request.query);
+    return reply.send(await withTenant(auth.context.tenantId, (tx) => listReminders(tx, auth.context, query)));
+  });
+
+  app.get('/reminders/status', { preHandler: requirePermission(Permission.MESSAGES_READ) }, async (request, reply) => {
+    const auth = currentAuth(request);
+    return reply.send(await withTenant(auth.context.tenantId, (tx) => getReminderSchedulerStatus(tx, auth.context)));
+  });
+
+  app.post('/reminders/process', { preHandler: requirePermission(Permission.MESSAGES_SEND) }, async (request, reply) => {
+    const auth = currentAuth(request);
+    const input = validate(processRemindersInputSchema, request.body ?? {});
+    return reply.send(await processDueReminders(auth.context, { ...input, trigger: 'manual' }, getWhatsappProvider()));
   });
 
   app.get('/templates', { preHandler: requirePermission(Permission.MESSAGES_READ) }, async (request, reply) => {

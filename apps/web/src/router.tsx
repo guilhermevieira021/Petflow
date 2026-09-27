@@ -16,7 +16,10 @@ import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { EquipePage } from '@/features/equipe/EquipePage';
 import { ProductDetailPage } from '@/features/inventory/ProductDetailPage';
 import { ProductsPage } from '@/features/inventory/ProductsPage';
+import { QuickEntryPage } from '@/features/inventory/QuickEntryPage';
+import { BrandsPage, CategoriesPage, LowStockPage, MovementsPage } from '@/features/inventory/StockSectionsPages';
 import { StockPage } from '@/features/inventory/StockPage';
+import { SuppliersPage } from '@/features/inventory/SuppliersPage';
 import { LandingPage } from '@/features/landing/LandingPage';
 import { MessagesPage } from '@/features/messages/MessagesPage';
 import { OnboardingPage } from '@/features/onboarding/OnboardingPage';
@@ -127,6 +130,62 @@ export const router = createBrowserRouter([
             element: (
               <RequirePermission permission={Permission.PRODUCTS_READ}>
                 <StockPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: '/estoque/entrada',
+            element: (
+              <RequirePermission permission={Permission.STOCK_RECEIVE}>
+                <QuickEntryPage key="entrada" mode="entrada" />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: '/estoque/saida',
+            element: (
+              <RequirePermission permission={Permission.STOCK_WRITE}>
+                <QuickEntryPage key="saida" mode="saida" />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: '/estoque/baixo',
+            element: (
+              <RequirePermission permission={Permission.PRODUCTS_READ}>
+                <LowStockPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: '/estoque/movimentacoes',
+            element: (
+              <RequirePermission permission={Permission.PRODUCTS_READ}>
+                <MovementsPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: '/estoque/marcas',
+            element: (
+              <RequirePermission permission={Permission.PRODUCTS_READ}>
+                <BrandsPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: '/estoque/fornecedores',
+            element: (
+              <RequirePermission permission={Permission.PRODUCTS_READ}>
+                <SuppliersPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: '/estoque/categorias',
+            element: (
+              <RequirePermission permission={Permission.PRODUCTS_READ}>
+                <CategoriesPage />
               </RequirePermission>
             ),
           },

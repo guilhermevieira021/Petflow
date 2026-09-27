@@ -140,6 +140,14 @@ export function ProductDetailPage() {
             <dl className="grid grid-cols-2 gap-4 p-5">
               <InfoItem label="Unidade" value={PRODUCT_UNIT_LABELS[product.unit]} />
               <InfoItem label="Custo" value={product.costPrice === null ? 'Não informado' : formatMoney(product.costPrice)} muted={product.costPrice === null} />
+              <InfoItem
+                label="Margem"
+                value={product.margin === null ? 'Sem custo' : `${(product.margin * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`}
+                muted={product.margin === null}
+              />
+              <InfoItem label="Marca" value={product.brandName ?? 'Sem marca'} muted={!product.brandName} />
+              <InfoItem label="Fornecedor" value={product.supplierName ?? 'Não informado'} muted={!product.supplierName} />
+              <InfoItem label="Categoria" value={product.category ?? 'Sem categoria'} muted={!product.category} />
               <InfoItem label="Controla estoque" value={product.trackStock ? 'Sim' : 'Não'} />
               <InfoItem label="Situação" value={product.active ? 'Ativo' : 'Inativo'} />
             </dl>

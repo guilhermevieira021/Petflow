@@ -70,6 +70,8 @@ export async function appointmentsRoutes(app: FastifyInstance): Promise<void> {
       const appointment = await withTenant(auth.context.tenantId, (tx) =>
         updateAppointment(tx, auth.context, id, input),
       );
+      // Aviso de reagendamento (se registrado) sai apos o commit, so com API conectada.
+      await dispatchQueuedForAppointment(auth.context, id, getWhatsappProvider());
       return reply.send(appointment);
     },
   );
